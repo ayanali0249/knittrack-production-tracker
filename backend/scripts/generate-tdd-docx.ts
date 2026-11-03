@@ -105,7 +105,7 @@ async function generateTDD() {
                           new TextRun({ text: 'Client Context: ', bold: true }),
                           new TextRun('Company A, Tiruppur, Tamil Nadu (Knitwear Exporter, ₹95–110 Cr Revenue)\n'),
                           new TextRun({ text: 'GitHub Project URL: ', bold: true }),
-                          new TextRun('[REPLACE_WITH_YOUR_GITHUB_REPO_URL]\n'),
+                          new TextRun('https://github.com/ayanali0249/knittrack-production-tracker\n'),
                           new TextRun({ text: 'Live Application URL: ', bold: true }),
                           new TextRun('[REPLACE_WITH_YOUR_DEPLOYED_URL_OR_RUN_LOCALLY]\n'),
                           new TextRun({ text: 'Date: ', bold: true }),

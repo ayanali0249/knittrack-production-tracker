@@ -76,7 +76,7 @@ VITE_API_URL="/api"
 
 ### Step 4.1: Clone the Repository
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/knittrack-production-tracker.git
+git clone https://github.com/ayanali0249/knittrack-production-tracker.git
 cd knittrack-production-tracker
 ```
 
