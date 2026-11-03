@@ -1,0 +1,210 @@
+// KnitTrack Database Schema
+// Production order tracking for knitwear exporters
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MERCHANDISER
+  SUPERVISOR
+  BUYER
+}
+
+enum OrderStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum StageStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DELAYED
+}
+
+enum RiskLevel {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  name           String
+  password       String
+  role           UserRole
+  productionUnitId String?
+  productionUnit ProductionUnit?  @relation(fields: [productionUnitId], references: [id])
+  buyerId        String?
+  buyer          Buyer?           @relation(fields: [buyerId], references: [id])
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  createdOrders     ProductionOrder[] @relation("OrderCreator")
+  productionUpdates ProductionUpdate[]
+  auditLogs         AuditLog[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model Buyer {
+  id            String           @id @default(cuid())
+  name          String
+  country       String
+  contactEmail  String
+  contactPerson String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  orders        ProductionOrder[]
+  users         User[]
+  accessTokens  BuyerAccessToken[]
+
+  @@index([name])
+}
+
+model ProductionUnit {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  location  String
+  capacity  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders     ProductionOrder[]
+  supervisors User[]
+}
+
+model ProductionOrder {
+  id               String      @id @default(cuid())
+  poNumber         String      @unique
+  buyerId          String
+  buyer            Buyer       @relation(fields: [buyerId], references: [id])
+  styleName        String
+  description      String?
+  colour           String
+  sizes            Json        // e.g., { "S": 2000, "M": 3000, "L": 4000, "XL": 3000 }
+  totalQuantity    Int
+  productionUnitId String
+  productionUnit   ProductionUnit @relation(fields: [productionUnitId], references: [id])
+  exFactoryDate    DateTime
+  status           OrderStatus @default(ACTIVE)
+  riskLevel        RiskLevel   @default(ON_TRACK)
+  createdById      String
+  createdBy        User        @relation("OrderCreator", fields: [createdById], references: [id])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  stages           OrderStage[]
+  photos           ProductionPhoto[]
+
+  @@index([buyerId])
+  @@index([productionUnitId])
+  @@index([status])
+  @@index([exFactoryDate])
+  @@index([riskLevel])
+}
+
+model OrderStage {
+  id                 String      @id @default(cuid())
+  orderId            String
+  order              ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stageName          String      // e.g., "Cutting", "Stitching", etc.
+  sequence           Int
+  plannedStartDate   DateTime
+  plannedEndDate     DateTime
+  actualStartDate    DateTime?
+  actualEndDate      DateTime?
+  plannedQuantity    Int
+  completedQuantity  Int         @default(0)
+  status             StageStatus @default(NOT_STARTED)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  productionUpdates  ProductionUpdate[]
+
+  @@unique([orderId, stageName])
+  @@index([orderId])
+  @@index([status])
+}
+
+model ProductionUpdate {
+  id              String    @id @default(cuid())
+  orderStageId    String
+  orderStage      OrderStage @relation(fields: [orderStageId], references: [id], onDelete: Cascade)
+  supervisorId    String
+  supervisor      User      @relation(fields: [supervisorId], references: [id])
+  date            DateTime  @db.Date
+  quantity        Int
+  note            String?
+  originalNote    String?   // preserved Tamil/English original
+  aiCategory      String?
+  aiConfidence    Float?
+  correctedCategory String?
+  createdAt       DateTime  @default(now())
+
+  photos          ProductionPhoto[]
+
+  @@unique([orderStageId, supervisorId, date]) // prevent duplicate submissions
+  @@index([orderStageId])
+  @@index([supervisorId])
+  @@index([date])
+}
+
+model ProductionPhoto {
+  id                  String   @id @default(cuid())
+  productionUpdateId  String?
+  productionUpdate    ProductionUpdate? @relation(fields: [productionUpdateId], references: [id], onDelete: SetNull)
+  orderId             String
+  order               ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  filename            String
+  path                String
+  mimeType            String
+  size                Int
+  approved            Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productionUpdateId])
+}
+
+model BuyerAccessToken {
+  id        String   @id @default(cuid())
+  buyerId   String
+  buyer     Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([buyerId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
