@@ -21,4 +21,18 @@ export const config = {
     dir: process.env.UPLOAD_DIR || './uploads',
     maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '5', 10),
   },
+
+  rateLimit: {
+    apiMax: parseInt(
+      process.env.RATE_LIMIT_API_MAX ||
+        (process.env.NODE_ENV === 'production' ? '100' : '5000'),
+      10
+    ),
+    authMax: parseInt(
+      process.env.RATE_LIMIT_AUTH_MAX ||
+        (process.env.NODE_ENV === 'production' ? '10' : '200'),
+      10
+    ),
+    windowMs: 15 * 60 * 1000,
+  },
 };

@@ -112,7 +112,7 @@ export function App() {
             <Route
               path="supervisor/update"
               element={
-                <ProtectedRoute allowedRoles={['SUPERVISOR', 'MERCHANDISER', 'ADMIN']}>
+                <ProtectedRoute allowedRoles={['SUPERVISOR', 'ADMIN']}>
                   <SupervisorUpdatePage />
                 </ProtectedRoute>
               }
@@ -122,7 +122,7 @@ export function App() {
             <Route
               path="buyer"
               element={
-                <ProtectedRoute allowedRoles={['BUYER', 'ADMIN', 'MERCHANDISER']}>
+                <ProtectedRoute allowedRoles={['BUYER', 'ADMIN']}>
                   <BuyerPortalPage />
                 </ProtectedRoute>
               }

@@ -59,6 +59,10 @@ GEMINI_API_KEY=""
 # File Upload Configuration
 UPLOAD_DIR="./uploads"
 MAX_FILE_SIZE_MB=5
+
+# Rate Limiting (Optional overrides — defaults to 5000/200 in dev, 100/10 in prod)
+RATE_LIMIT_API_MAX=5000
+RATE_LIMIT_AUTH_MAX=200
 ```
 
 > **Note on AI Fallback:** If `GEMINI_API_KEY` is not provided, KnitTrack automatically activates its rule-based keyword classifier for Tamil ("மெஷின் பழுதாகிவிட்டது", "தொழிலாளர்கள் குறைவாக உள்ளனர்", "துணி இன்னும் வரவில்லை", etc.) and English floor notes, maintaining full system functionality without throwing runtime errors.
@@ -156,20 +160,23 @@ The project maintains comprehensive test coverage across mathematical business l
 cd backend
 npm test
 ```
-**Test Results:**
+**Test Results (82 tests passing):**
 - `src/__tests__/delay.test.ts`: 24 passing tests (business day logic, rate calculations, zero rates, past deadlines, risk classification)
 - `src/__tests__/ai.test.ts`: 13 passing tests (Tamil notes, English notes, empty notes, fallback mode, audit trails)
 - `src/__tests__/auth.test.ts`: 12 passing tests (login, cookie issuance, RBAC, wrong password, token validation)
 - `src/__tests__/orders.test.ts`: 20 passing tests (order creation, validation, tenant data isolation, supervisor scoping)
-- **Total: 69 tests passing (100% pass rate)**
+- `src/__tests__/rbac_isolation.test.ts`: 13 passing tests (role boundaries, cross-buyer data isolation, timeline scoping, session clearing)
+- **Total Backend: 82 tests passing (100% pass rate)**
 
 ### Frontend Tests
 ```bash
 cd frontend
 npm test
 ```
-**Test Results:**
+**Test Results (4 tests passing):**
 - `src/__tests__/StatusBadge.test.tsx`: 4 passing tests (render On Track, At Risk, Delayed, AI Category badges)
+
+**Grand Total: 86 automated tests passing across full stack (100% pass rate).**
 
 ### TypeScript Verification & Production Builds
 ```bash

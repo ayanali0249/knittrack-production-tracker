@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma';
 import { RiskLevel, OrderStatus } from '@prisma/client';
+import { AppError } from '../middleware/errorHandler';
 import { delayService } from './delay.service';
 import type { JwtPayload, DashboardSummary } from '../types';
 import { normalizeDate } from '../lib/delayCalculation';
@@ -71,24 +72,80 @@ export class DashboardService {
     }));
 
     // Recent updates
-    const recentUpdates = await prisma.productionUpdate.findMany({
-      where: user.role === 'SUPERVISOR' && user.productionUnitId
-        ? { orderStage: { order: { productionUnitId: user.productionUnitId } } }
-        : user.role === 'BUYER' && user.buyerId
-          ? { orderStage: { order: { buyerId: user.buyerId } } }
-          : {},
-      include: {
-        supervisor: { select: { name: true } },
-        orderStage: {
-          select: {
-            stageName: true,
-            order: { select: { poNumber: true } },
+    const [recentUpdates, activeOrdersList] = await Promise.all([
+      prisma.productionUpdate.findMany({
+        where: user.role === 'SUPERVISOR' && user.productionUnitId
+          ? { orderStage: { order: { productionUnitId: user.productionUnitId } } }
+          : user.role === 'BUYER' && user.buyerId
+            ? { orderStage: { order: { buyerId: user.buyerId } } }
+            : {},
+        include: {
+          supervisor: { select: { name: true } },
+          orderStage: {
+            select: {
+              stageName: true,
+              order: { select: { poNumber: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.productionOrder.findMany({
+        where: { ...baseWhere, status: OrderStatus.ACTIVE },
+        include: {
+          buyer: { select: { id: true, name: true, country: true } },
+          productionUnit: { select: { id: true, name: true, location: true } },
+          stages: {
+            orderBy: { sequence: 'asc' },
+            select: { completedQuantity: true, plannedQuantity: true },
+          },
+        },
+      }),
+    ]);
+
+    const totalQuantity = activeOrdersList.reduce((sum, o) => sum + o.totalQuantity, 0);
+    const completedQuantity = activeOrdersList.reduce((sum, o) => {
+      const lastStage = o.stages[o.stages.length - 1];
+      return sum + (lastStage?.completedQuantity || 0);
+    }, 0);
+    const overallCompletionPct = totalQuantity > 0 ? Math.round((completedQuantity / totalQuantity) * 100) : 0;
+
+    const buyerMap = new Map<string, { buyerName: string; country: string; count: number; totalQuantity: number; completedQuantity: number; delayedCount: number }>();
+    for (const o of activeOrdersList) {
+      const b = buyerMap.get(o.buyerId) || {
+        buyerName: o.buyer.name,
+        country: o.buyer.country,
+        count: 0,
+        totalQuantity: 0,
+        completedQuantity: 0,
+        delayedCount: 0,
+      };
+      b.count += 1;
+      b.totalQuantity += o.totalQuantity;
+      const lastStage = o.stages[o.stages.length - 1];
+      b.completedQuantity += lastStage?.completedQuantity || 0;
+      if (o.riskLevel === RiskLevel.DELAYED) b.delayedCount += 1;
+      buyerMap.set(o.buyerId, b);
+    }
+
+    const unitMap = new Map<string, { unitName: string; location: string; count: number; totalQuantity: number; completedQuantity: number; delayedCount: number }>();
+    for (const o of activeOrdersList) {
+      const u = unitMap.get(o.productionUnitId) || {
+        unitName: o.productionUnit.name,
+        location: o.productionUnit.location,
+        count: 0,
+        totalQuantity: 0,
+        completedQuantity: 0,
+        delayedCount: 0,
+      };
+      u.count += 1;
+      u.totalQuantity += o.totalQuantity;
+      const lastStage = o.stages[o.stages.length - 1];
+      u.completedQuantity += lastStage?.completedQuantity || 0;
+      if (o.riskLevel === RiskLevel.DELAYED) u.delayedCount += 1;
+      unitMap.set(o.productionUnitId, u);
+    }
 
     return {
       totalOrders,
@@ -97,6 +154,11 @@ export class DashboardService {
       onTrackCount: ordersByRisk.ON_TRACK,
       atRiskCount: ordersByRisk.AT_RISK,
       delayedCount: ordersByRisk.DELAYED,
+      totalQuantity,
+      completedQuantity,
+      overallCompletionPct,
+      ordersByBuyer: Array.from(buyerMap.values()),
+      ordersByUnit: Array.from(unitMap.values()),
       ordersByStatus,
       ordersByRisk,
       upcomingDeadlines,
@@ -176,6 +238,29 @@ export class DashboardService {
         })),
       };
     });
+  }
+
+  /**
+   * Get delay analysis for a single order with authorization check.
+   */
+  async getOrderDelay(orderId: string, user: JwtPayload) {
+    const order = await prisma.productionOrder.findUnique({
+      where: { id: orderId },
+      select: { id: true, buyerId: true, productionUnitId: true },
+    });
+
+    if (!order) {
+      throw new AppError('Order not found.', 404);
+    }
+
+    if (user.role === 'BUYER' && order.buyerId !== user.buyerId) {
+      throw new AppError('Access denied.', 403);
+    }
+    if (user.role === 'SUPERVISOR' && order.productionUnitId !== user.productionUnitId) {
+      throw new AppError('Access denied.', 403);
+    }
+
+    return delayService.analyseOrder(orderId);
   }
 
   private buildScopeFilter(user: JwtPayload) {

@@ -36,7 +36,11 @@ export class AuthController {
    * POST /api/auth/logout
    */
   async logout(_req: AuthRequest, res: Response) {
-    res.clearCookie('token', { path: '/' });
+    res.clearCookie('token', {
+      ...COOKIE_OPTIONS,
+      maxAge: 0,
+      path: '/',
+    });
     res.json({ success: true, message: 'Logged out successfully.' });
   }
 

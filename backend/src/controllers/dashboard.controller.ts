@@ -33,7 +33,7 @@ export class DashboardController {
    */
   async getOrderDelay(req: AuthRequest, res: Response) {
     const orderId = Array.isArray(req.params.orderId) ? req.params.orderId[0] : req.params.orderId;
-    const analysis = await delayService.analyseOrder(orderId);
+    const analysis = await dashboardService.getOrderDelay(orderId, req.user!);
     res.json({ success: true, data: analysis });
   }
 

@@ -28,7 +28,8 @@ export class BuyerController {
     } else if (req.user?.buyerId) {
       buyerId = req.user.buyerId;
     } else {
-      res.status(401).json({ success: false, error: 'Buyer access required.' });
+      const status = req.user ? 403 : 401;
+      res.status(status).json({ success: false, error: 'Access denied. Buyer role required.' });
       return;
     }
 
@@ -50,7 +51,8 @@ export class BuyerController {
     } else if (req.user?.buyerId) {
       buyerId = req.user.buyerId;
     } else {
-      res.status(401).json({ success: false, error: 'Buyer access required.' });
+      const status = req.user ? 403 : 401;
+      res.status(status).json({ success: false, error: 'Access denied. Buyer role required.' });
       return;
     }
 

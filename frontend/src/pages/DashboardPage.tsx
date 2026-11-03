@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { dashboardService } from '../services/dashboard.service';
 import { orderService } from '../services/order.service';
 import type { DashboardSummary, ProductionOrder, OrderDelayAnalysis, RiskLevel } from '../types';
@@ -22,6 +23,7 @@ import {
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +45,8 @@ export const DashboardPage: React.FC = () => {
         dashboardService.getSummary(),
         orderService.getOrders(),
       ]);
-      setSummary(sumData);
-      setOrders(ordData);
+      setSummary(sumData || null);
+      setOrders(Array.isArray(ordData) ? ordData : []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch dashboard data.');
@@ -74,19 +76,23 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  // Safe orders list
+  const safeOrders = Array.isArray(orders) ? orders : [];
+
   // Filtered orders
-  const filteredOrders = orders.filter((o) => {
-    const matchesSearch =
-      o.poNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.styleName.toLowerCase().includes(search.toLowerCase()) ||
-      o.buyer.name.toLowerCase().includes(search.toLowerCase());
+  const filteredOrders = safeOrders.filter((o) => {
+    const po = (o.poNumber || '').toLowerCase();
+    const style = (o.styleName || '').toLowerCase();
+    const buyer = (o.buyer?.name || '').toLowerCase();
+    const s = search.toLowerCase();
+    const matchesSearch = po.includes(s) || style.includes(s) || buyer.includes(s);
     const matchesRisk = riskFilter === 'ALL' || o.riskLevel === riskFilter;
     return matchesSearch && matchesRisk;
   });
 
   // Calculate current completion per order
   const getOrderProgress = (order: ProductionOrder) => {
-    if (!order.stages || order.stages.length === 0) return 0;
+    if (!order?.stages || order.stages.length === 0 || !order.totalQuantity) return 0;
     const lastStage = order.stages[order.stages.length - 1];
     if (!lastStage) return 0;
     return Math.round((lastStage.completedQuantity / order.totalQuantity) * 100);
@@ -136,23 +142,25 @@ export const DashboardPage: React.FC = () => {
                     <p className="text-[11px] text-slate-500 truncate max-w-xs">{order.styleName}</p>
                   </td>
                   <td className="py-3.5 px-4 font-medium text-slate-700">
-                    {order.buyer.name}
-                    <span className="block text-[10px] text-slate-400">{order.buyer.country}</span>
+                    {order.buyer?.name || 'N/A'}
+                    <span className="block text-[10px] text-slate-400">{order.buyer?.country || ''}</span>
                   </td>
                   <td className="py-3.5 px-4 text-slate-600">
-                    {order.productionUnit.name.split('-')[0]}
+                    {order.productionUnit?.name ? order.productionUnit.name.split('-')[0] : 'N/A'}
                   </td>
                   <td className="py-3.5 px-4">
                     <span className="font-medium text-slate-800">
-                      {new Date(order.exFactoryDate).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                      {order.exFactoryDate
+                        ? new Date(order.exFactoryDate).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Unscheduled'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 font-medium text-slate-800">
-                    {order.totalQuantity.toLocaleString()} pcs
+                    {(order.totalQuantity ?? 0).toLocaleString()} pcs
                   </td>
                   <td className="py-3.5 px-4 min-w-[140px]">
                     <div className="flex justify-between text-[11px] text-slate-500 mb-1">
@@ -234,50 +242,87 @@ export const DashboardPage: React.FC = () => {
             Refresh
           </button>
 
-          <button
-            onClick={() => navigate('/orders/new')}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-2xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Order
-          </button>
+          {(user?.role === 'MERCHANDISER' || user?.role === 'ADMIN') && (
+            <button
+              onClick={() => navigate('/orders/new')}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-2xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Order
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Error Alert if any */}
+      {error && (
+        <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="underline font-semibold hover:text-rose-900 cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards Row */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard
             title="Active Orders"
-            value={summary.activeOrders}
-            subtitle={`${summary.totalQuantity.toLocaleString()} pcs total`}
+            value={summary.activeOrders ?? 0}
+            subtitle={`${(
+              summary.totalQuantity ??
+              safeOrders.reduce((sum, o) => sum + (o.totalQuantity || 0), 0)
+            ).toLocaleString()} pcs total`}
             accentColor="blue"
           />
           <StatCard
             title="On Track"
-            value={summary.onTrackCount}
+            value={summary.onTrackCount ?? 0}
             subtitle="Pacing on schedule"
             accentColor="emerald"
             onClick={() => setRiskFilter('ON_TRACK')}
           />
           <StatCard
             title="At Risk"
-            value={summary.atRiskCount}
+            value={summary.atRiskCount ?? 0}
             subtitle="Projected 1-3 day delay"
             accentColor="amber"
             onClick={() => setRiskFilter('AT_RISK')}
           />
           <StatCard
             title="Delayed"
-            value={summary.delayedCount}
+            value={summary.delayedCount ?? 0}
             subtitle="Requires intervention"
             accentColor="rose"
             onClick={() => setRiskFilter('DELAYED')}
           />
           <StatCard
             title="Production Pace"
-            value={`${summary.overallCompletionPct}%`}
-            subtitle={`${summary.completedQuantity.toLocaleString()} completed`}
+            value={`${
+              summary.overallCompletionPct ??
+              (() => {
+                const total = safeOrders.reduce((sum, o) => sum + (o.totalQuantity || 0), 0);
+                const completed = safeOrders.reduce((sum, o) => {
+                  const last = o.stages?.[o.stages.length - 1];
+                  return sum + (last?.completedQuantity || 0);
+                }, 0);
+                return total > 0 ? Math.round((completed / total) * 100) : 0;
+              })()
+            }%`}
+            subtitle={`${(
+              summary.completedQuantity ??
+              safeOrders.reduce((sum, o) => {
+                const last = o.stages?.[o.stages.length - 1];
+                return sum + (last?.completedQuantity || 0);
+              }, 0)
+            ).toLocaleString()} completed`}
             accentColor="indigo"
           />
         </div>
@@ -341,8 +386,8 @@ export const DashboardPage: React.FC = () => {
           renderOrderList(filteredOrders)
         ) : groupBy === 'BUYER' ? (
           <div className="divide-y divide-slate-200">
-            {Array.from(new Set(filteredOrders.map((o) => o.buyer.name))).map((buyerName) => {
-              const buyerOrders = filteredOrders.filter((o) => o.buyer.name === buyerName);
+            {Array.from(new Set(filteredOrders.map((o) => o.buyer?.name || 'Unknown'))).map((buyerName) => {
+              const buyerOrders = filteredOrders.filter((o) => (o.buyer?.name || 'Unknown') === buyerName);
               return (
                 <div key={buyerName} className="p-4">
                   <div className="flex items-center justify-between mb-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
@@ -350,7 +395,7 @@ export const DashboardPage: React.FC = () => {
                       Buyer: {buyerName} ({buyerOrders.length} orders)
                     </span>
                     <span className="text-xs text-slate-500 font-semibold">
-                      Total: {buyerOrders.reduce((acc, o) => acc + o.totalQuantity, 0).toLocaleString()} pcs
+                      Total: {buyerOrders.reduce((acc, o) => acc + (o.totalQuantity || 0), 0).toLocaleString()} pcs
                     </span>
                   </div>
                   {renderOrderList(buyerOrders)}
@@ -360,8 +405,8 @@ export const DashboardPage: React.FC = () => {
           </div>
         ) : groupBy === 'UNIT' ? (
           <div className="divide-y divide-slate-200">
-            {Array.from(new Set(filteredOrders.map((o) => o.productionUnit.name))).map((unitName) => {
-              const unitOrders = filteredOrders.filter((o) => o.productionUnit.name === unitName);
+            {Array.from(new Set(filteredOrders.map((o) => o.productionUnit?.name || 'Unknown'))).map((unitName) => {
+              const unitOrders = filteredOrders.filter((o) => (o.productionUnit?.name || 'Unknown') === unitName);
               return (
                 <div key={unitName} className="p-4">
                   <div className="flex items-center justify-between mb-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
@@ -369,7 +414,7 @@ export const DashboardPage: React.FC = () => {
                       Unit: {unitName} ({unitOrders.length} orders)
                     </span>
                     <span className="text-xs text-slate-500 font-semibold">
-                      Total: {unitOrders.reduce((acc, o) => acc + o.totalQuantity, 0).toLocaleString()} pcs
+                      Total: {unitOrders.reduce((acc, o) => acc + (o.totalQuantity || 0), 0).toLocaleString()} pcs
                     </span>
                   </div>
                   {renderOrderList(unitOrders)}
@@ -382,19 +427,23 @@ export const DashboardPage: React.FC = () => {
             {Array.from(
               new Set(
                 filteredOrders.map((o) =>
-                  new Date(o.exFactoryDate).toLocaleDateString('en-GB', {
-                    month: 'short',
-                    year: 'numeric',
-                  })
+                  o.exFactoryDate
+                    ? new Date(o.exFactoryDate).toLocaleDateString('en-GB', {
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : 'Unscheduled'
                 )
               )
             ).map((dateMonth) => {
               const monthOrders = filteredOrders.filter(
                 (o) =>
-                  new Date(o.exFactoryDate).toLocaleDateString('en-GB', {
-                    month: 'short',
-                    year: 'numeric',
-                  }) === dateMonth
+                  (o.exFactoryDate
+                    ? new Date(o.exFactoryDate).toLocaleDateString('en-GB', {
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : 'Unscheduled') === dateMonth
               );
               return (
                 <div key={dateMonth} className="p-4">

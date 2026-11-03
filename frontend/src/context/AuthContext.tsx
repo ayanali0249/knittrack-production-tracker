@@ -50,6 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const quickLogin = async (role: UserRole) => {
     const creds = DEMO_CREDENTIALS[role];
     if (creds) {
+      try {
+        await authService.logout();
+      } catch {
+        // ignore logout error if session already cleared
+      }
       await login(creds.email, creds.password);
     }
   };

@@ -27,9 +27,10 @@ export const BuyerPortalPage: React.FC = () => {
     const fetchBuyerOrders = async () => {
       try {
         const myOrders = await buyerService.getMyOrders();
-        setOrders(myOrders);
-        if (myOrders.length > 0 && myOrders[0]) {
-          setSelectedOrder(myOrders[0]);
+        const safeOrders = Array.isArray(myOrders) ? myOrders : [];
+        setOrders(safeOrders);
+        if (safeOrders.length > 0 && safeOrders[0]) {
+          setSelectedOrder(safeOrders[0]);
         }
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load buyer orders.');

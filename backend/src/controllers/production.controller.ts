@@ -24,13 +24,16 @@ export class ProductionController {
    * GET /api/production/updates
    */
   async getUpdates(req: AuthRequest, res: Response) {
-    const updates = await productionService.getUpdates({
-      orderStageId: req.query.orderStageId as string,
-      orderId: req.query.orderId as string,
-      supervisorId: req.query.supervisorId as string,
-      startDate: req.query.startDate as string,
-      endDate: req.query.endDate as string,
-    });
+    const updates = await productionService.getUpdates(
+      {
+        orderStageId: req.query.orderStageId as string,
+        orderId: req.query.orderId as string,
+        supervisorId: req.query.supervisorId as string,
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+      },
+      req.user!
+    );
     res.json({ success: true, data: updates });
   }
 
@@ -39,7 +42,7 @@ export class ProductionController {
    */
   async getTimeline(req: AuthRequest, res: Response) {
     const orderId = Array.isArray(req.params.orderId) ? req.params.orderId[0] : req.params.orderId;
-    const timeline = await productionService.getOrderTimeline(orderId);
+    const timeline = await productionService.getOrderTimeline(orderId, req.user!);
     res.json({ success: true, data: timeline });
   }
 }

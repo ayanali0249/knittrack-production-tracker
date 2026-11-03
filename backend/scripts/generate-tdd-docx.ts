@@ -106,8 +106,8 @@ async function generateTDD() {
                           new TextRun('Company A, Tiruppur, Tamil Nadu (Knitwear Exporter, ₹95–110 Cr Revenue)\n'),
                           new TextRun({ text: 'GitHub Project URL: ', bold: true }),
                           new TextRun('https://github.com/ayanali0249/knittrack-production-tracker\n'),
-                          new TextRun({ text: 'Live Application URL: ', bold: true }),
-                          new TextRun('[REPLACE_WITH_YOUR_DEPLOYED_URL_OR_RUN_LOCALLY]\n'),
+                          new TextRun({ text: 'Application URL: ', bold: true }),
+                          new TextRun('Local Dev: http://localhost:5173 | Production: Ready for Cloud Deploy (Vercel/Render)\n'),
                           new TextRun({ text: 'Date: ', bold: true }),
                           new TextRun('November 2026'),
                         ],
@@ -199,7 +199,7 @@ async function generateTDD() {
               '        │                                 │                                 │\n' +
               '        ▼                                 ▼                                 ▼\n' +
               ' [Order & TNA Service]          [Delay Prediction Engine]         [AI Classifier Service]  \n' +
-              '  - PO CRUD & Sizes               - 6-Day Business Day Math         - Google Gemini Flash  \n' +
+              '  - PO CRUD & Sizes               - 5-Day Business Day Math         - Google Gemini Flash  \n' +
               '  - Stage Status & Qty            - Required vs Actual Rate         - Tamil Keyword Fallback\n' +
               '  - Tenant Buyer Scoping          - Projected Completion Date       - Merchandiser Audit Log\n' +
               '+-----------------------------------------------------------------------------------------+\n' +
@@ -273,6 +273,7 @@ async function generateTDD() {
               'The buyer portal is engineered with strict multi-tenant isolation principles:\n' +
               '• Authentication & Scoping: When a buyer logs in (e.g. Company B UK or Company C Germany), the backend extracts user.buyerId from the cryptographically verified JWT.\n' +
               '• Strict Backend Enforcement: All database queries for /api/buyer/orders enforce { where: { buyerId: req.user.buyerId } }. Even if a buyer modifies URL parameters, access to other brands is rejected with HTTP 403 Forbidden.\n' +
+              '• Endpoint Tenant Protection: Cross-tenant IDOR protection is enforced across all related endpoints: order detail (/api/orders/:id), order timeline (/api/production/timeline/:id), and delay analysis (/api/dashboard/delay/:id) all reject unauthorized buyer access with HTTP 403 Forbidden.\n' +
               '• Read-Only Guarantees: The buyer route handlers expose only GET endpoints. Post, put, patch, and delete methods do not exist for the buyer role.\n' +
               '• Visual Scope: Buyers view milestone progress bars, ex-factory countdowns, and approved assembly photos without exposure to internal cost sheets, factory unit margins, or other client data.',
           }),
@@ -282,11 +283,11 @@ async function generateTDD() {
           new Paragraph({
             text:
               '• Password Security: Passwords hashed with bcryptjs using a work factor of 10 salt rounds.\n' +
-              '• Session Security: Stateless JSON Web Tokens (JWT) stored in HttpOnly, SameSite=Lax cookies to prevent Cross-Site Scripting (XSS) token exfiltration.\n' +
-              '• Server-Side Authorization: Dedicated RBAC middleware (requireRole) verifies permissions before executing controller logic.\n' +
+              '• Session Security: Stateless JSON Web Tokens (JWT) stored in HttpOnly, SameSite=Lax cookies to prevent Cross-Site Scripting (XSS) token exfiltration. Logout explicitly clears the cookie with standard RFC 6265 options.\n' +
+              '• Server-Side Authorization: Dedicated RBAC middleware (requireRole) verifies permissions before executing controller logic. Roles are sourced solely from verified database records.\n' +
               '• Injection Protection: Prisma ORM uses parameterized SQL queries exclusively, eliminating SQL injection vulnerabilities.\n' +
               '• Input Validation: Zod schemas validate all incoming request bodies, query strings, and route parameters.\n' +
-              '• Rate Limiting: Sensitive authentication and classification endpoints are rate-limited via express-rate-limit to protect against brute-force attacks.\n' +
+              '• Environment-Aware Rate Limiting: Sensitive endpoints are rate-limited via express-rate-limit. In production, strict limits (100 general API requests, 10 login attempts per 15 min) prevent brute-force attacks. In development, thresholds expand to 5,000 API requests and 200 auth attempts to support iterative manual evaluation.\n' +
               '• File Upload Hardening: Multer middleware verifies file MIME types (restricting to image/jpeg, image/png, image/webp) and enforces a strict 5 MB size cap.\n' +
               '• HTTP Header Hardening: Helmet middleware injects standard security headers (X-Content-Type-Options, Strict-Transport-Security, Frameguard).',
           }),
@@ -296,12 +297,13 @@ async function generateTDD() {
           new Paragraph({
             text:
               'The testing strategy emphasizes automated verification of business logic, delay mathematics, and role permissions:\n\n' +
-              '• Business Logic Unit Tests (Vitest): 24 tests in delay.test.ts verifying 6-day business week calculations, actual run rates, required run rates, zero-output handling, past-deadline conditions, and deterministic risk boundaries.\n' +
+              '• Business Logic Unit Tests (Vitest): 24 tests in delay.test.ts verifying 5-day business week calculations, actual run rates, required run rates, zero-output handling, past-deadline conditions, and deterministic risk boundaries.\n' +
               '• AI Classification Tests (Vitest): 13 tests in ai.test.ts validating Tamil phrases, English notes, whitespace handling, rule-based fallback, and merchandiser correction audit logging.\n' +
               '• Authentication Tests (Supertest): 12 tests in auth.test.ts validating credential verification, cookie issuance, token decoding, and RBAC rejections.\n' +
               '• Order API Integration Tests (Supertest): 20 tests in orders.test.ts validating order creation, duplicate PO rejection, supervisor unit scoping, and buyer data isolation.\n' +
+              '• RBAC & Data Isolation Security Tests (Supertest): 13 tests in rbac_isolation.test.ts validating cross-role API rejection (403), Buyer B vs Buyer C isolation, timeline scoping, supervisor unit isolation, and session invalidation on logout.\n' +
               '• Frontend Component Tests: 4 tests in StatusBadge.test.tsx validating semantic color badges and labels.\n\n' +
-              'SUMMARY: 73 total automated tests executed and passing with 100% pass rate. Both backend and frontend production builds compile with zero TypeScript errors.',
+              'SUMMARY: 86 total automated tests executed and passing with 100% pass rate (82 backend + 4 frontend). Both backend and frontend production builds compile with zero TypeScript errors.',
           }),
 
           // 13. Deployment Architecture

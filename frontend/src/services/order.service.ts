@@ -10,7 +10,17 @@ export const orderService = {
     search?: string;
   }): Promise<ProductionOrder[]> {
     const response = await api.get('/orders', { params });
-    return response.data.data.orders;
+    const resData = response.data?.data;
+    if (Array.isArray(resData)) {
+      return resData;
+    }
+    if (resData && Array.isArray((resData as any).orders)) {
+      return (resData as any).orders;
+    }
+    if (Array.isArray(response.data?.orders)) {
+      return response.data.orders;
+    }
+    return [];
   },
 
   async getOrderById(id: string): Promise<ProductionOrder> {

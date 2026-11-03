@@ -79,6 +79,25 @@ export interface DashboardSummary {
   onTrackCount: number;
   atRiskCount: number;
   delayedCount: number;
+  totalQuantity: number;
+  completedQuantity: number;
+  overallCompletionPct: number;
+  ordersByBuyer?: Array<{
+    buyerName: string;
+    country: string;
+    count: number;
+    totalQuantity: number;
+    completedQuantity: number;
+    delayedCount: number;
+  }>;
+  ordersByUnit?: Array<{
+    unitName: string;
+    location: string;
+    count: number;
+    totalQuantity: number;
+    completedQuantity: number;
+    delayedCount: number;
+  }>;
   ordersByStatus: Record<string, number>;
   ordersByRisk: Record<string, number>;
   upcomingDeadlines: Array<{

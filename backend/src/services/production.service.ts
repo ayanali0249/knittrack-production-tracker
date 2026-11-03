@@ -205,19 +205,36 @@ export class ProductionService {
   /**
    * Get production updates for a stage or order.
    */
-  async getUpdates(filters: {
-    orderStageId?: string;
-    orderId?: string;
-    supervisorId?: string;
-    startDate?: string;
-    endDate?: string;
-  }) {
+  async getUpdates(
+    filters: {
+      orderStageId?: string;
+      orderId?: string;
+      supervisorId?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+    user?: JwtPayload
+  ) {
     const where: Prisma.ProductionUpdateWhereInput = {};
+
+    // Role-based tenant scoping
+    if (user?.role === 'SUPERVISOR' && user.productionUnitId) {
+      where.orderStage = {
+        order: { productionUnitId: user.productionUnitId },
+      };
+    } else if (user?.role === 'BUYER' && user.buyerId) {
+      where.orderStage = {
+        order: { buyerId: user.buyerId },
+      };
+    }
 
     if (filters.orderStageId) where.orderStageId = filters.orderStageId;
     if (filters.supervisorId) where.supervisorId = filters.supervisorId;
     if (filters.orderId) {
-      where.orderStage = { orderId: filters.orderId };
+      where.orderStage = {
+        ...(where.orderStage as any),
+        orderId: filters.orderId,
+      };
     }
     if (filters.startDate || filters.endDate) {
       where.date = {};
@@ -248,7 +265,7 @@ export class ProductionService {
   /**
    * Get timeline of all updates for an order.
    */
-  async getOrderTimeline(orderId: string) {
+  async getOrderTimeline(orderId: string, user?: JwtPayload) {
     const order = await prisma.productionOrder.findUnique({
       where: { id: orderId },
       include: {
@@ -268,6 +285,16 @@ export class ProductionService {
     });
 
     if (!order) throw new AppError('Order not found.', 404);
+
+    // Tenant authorization check
+    if (user) {
+      if (user.role === 'BUYER' && order.buyerId !== user.buyerId) {
+        throw new AppError('Access denied.', 403);
+      }
+      if (user.role === 'SUPERVISOR' && order.productionUnitId !== user.productionUnitId) {
+        throw new AppError('Access denied.', 403);
+      }
+    }
 
     return order.stages.map((stage) => ({
       stageId: stage.id,

@@ -54,4 +54,32 @@ router.get(
   })
 );
 
+// GET /api/buyer/orders — alias for portal orders list
+router.get(
+  '/orders',
+  asyncHandler(async (req, res) => {
+    if (req.query.token) {
+      return buyerController.getPortalData(req as any, res);
+    }
+    authenticate(req as any, res, (err?: unknown) => {
+      if (err) return;
+      buyerController.getPortalData(req as any, res);
+    });
+  })
+);
+
+// GET /api/buyer/orders/:orderId — alias for portal order detail
+router.get(
+  '/orders/:orderId',
+  asyncHandler(async (req, res) => {
+    if (req.query.token) {
+      return buyerController.getOrderDetail(req as any, res);
+    }
+    authenticate(req as any, res, (err?: unknown) => {
+      if (err) return;
+      buyerController.getOrderDetail(req as any, res);
+    });
+  })
+);
+
 export default router;

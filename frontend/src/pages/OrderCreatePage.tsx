@@ -62,10 +62,12 @@ export const OrderCreatePage: React.FC = () => {
           orderService.getBuyers(),
           orderService.getProductionUnits(),
         ]);
-        setBuyers(buyerList);
-        setUnits(unitList);
-        if (buyerList[0]) setBuyerId(buyerList[0].id);
-        if (unitList[0]) setProductionUnitId(unitList[0].id);
+        const safeBuyers = Array.isArray(buyerList) ? buyerList : [];
+        const safeUnits = Array.isArray(unitList) ? unitList : [];
+        setBuyers(safeBuyers);
+        setUnits(safeUnits);
+        if (safeBuyers[0]) setBuyerId(safeBuyers[0].id);
+        if (safeUnits[0]) setProductionUnitId(safeUnits[0].id);
       } catch (err) {
         console.error('Failed to load buyers/units:', err);
       } finally {

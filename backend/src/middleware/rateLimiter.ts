@@ -1,11 +1,14 @@
 import rateLimit from 'express-rate-limit';
+import { config } from '../config';
 
 /**
- * General API rate limiter — 100 requests per 15 minutes per IP.
+ * General API rate limiter:
+ * - Production: 100 requests per 15 minutes per IP.
+ * - Development: 5,000 requests per 15 minutes per IP.
  */
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.apiMax,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -15,11 +18,13 @@ export const apiLimiter = rateLimit({
 });
 
 /**
- * Auth rate limiter — 10 login attempts per 15 minutes per IP.
+ * Auth rate limiter:
+ * - Production: 10 login attempts per 15 minutes per IP.
+ * - Development: 200 login attempts per 15 minutes per IP.
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.authMax,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

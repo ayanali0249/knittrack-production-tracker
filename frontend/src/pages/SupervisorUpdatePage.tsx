@@ -40,10 +40,11 @@ export const SupervisorUpdatePage: React.FC = () => {
     const fetchOrders = async () => {
       try {
         const orderList = await orderService.getOrders();
-        setOrders(orderList);
-        if (orderList.length > 0 && orderList[0]) {
-          setSelectedOrderId(orderList[0].id);
-          const firstStage = orderList[0].stages?.[0];
+        const safeList = Array.isArray(orderList) ? orderList : [];
+        setOrders(safeList);
+        if (safeList.length > 0 && safeList[0]) {
+          setSelectedOrderId(safeList[0].id);
+          const firstStage = safeList[0].stages?.[0];
           if (firstStage) setSelectedStageId(firstStage.id);
         }
       } catch (err) {
@@ -55,7 +56,8 @@ export const SupervisorUpdatePage: React.FC = () => {
     fetchOrders();
   }, []);
 
-  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const selectedOrder = safeOrders.find((o) => o.id === selectedOrderId);
   const selectedStage = selectedOrder?.stages?.find((s) => s.id === selectedStageId);
 
   const remainingQty = selectedStage
@@ -65,7 +67,7 @@ export const SupervisorUpdatePage: React.FC = () => {
   // Handle Order Change
   const handleOrderChange = (orderId: string) => {
     setSelectedOrderId(orderId);
-    const ord = orders.find((o) => o.id === orderId);
+    const ord = safeOrders.find((o) => o.id === orderId);
     const activeStage =
       ord?.stages?.find((s) => s.status === 'IN_PROGRESS') || ord?.stages?.[0];
     if (activeStage) {
@@ -164,7 +166,7 @@ export const SupervisorUpdatePage: React.FC = () => {
 
       // Refresh order data
       const updatedList = await orderService.getOrders();
-      setOrders(updatedList);
+      setOrders(Array.isArray(updatedList) ? updatedList : []);
     } catch (err: any) {
       setErrorMessage(
         err.response?.data?.error ||
@@ -219,7 +221,7 @@ export const SupervisorUpdatePage: React.FC = () => {
             onChange={(e) => handleOrderChange(e.target.value)}
             className="w-full min-h-[48px] px-3 py-2 text-sm font-semibold border-2 border-slate-200 rounded-xl focus:border-indigo-600 focus:ring-0 bg-white"
           >
-            {orders.map((o) => (
+            {safeOrders.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.poNumber} — {o.styleName} ({o.totalQuantity.toLocaleString()} pcs)
               </option>
