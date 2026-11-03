@@ -1,74 +1,109 @@
 # KnitTrack — Production Order-Tracking System
-## Deployment & Operational Runbook
+## Enterprise Deployment Runbook & Operations Guide
 
-**Company:** Isocode Labs Take-Home Assessment  
-**Role:** Software Engineering Intern  
-**Submission Date:** November 2026  
-**Client Context:** Knitwear Apparel Exporter, Tiruppur, Tamil Nadu, India  
-
----
-
-## 1. Project Overview & Architecture
-
-KnitTrack is a high-reliability production order tracking platform designed specifically for the knitwear garment export industry in Tiruppur, Tamil Nadu. It provides end-to-end milestone visibility across cutting, stitching, printing, washing, finishing, and packing stages.
-
-### Technical Stack
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Axios, React Router v6
-- **Backend:** Node.js, Express, TypeScript, Prisma ORM
-- **Database:** PostgreSQL (with relations, constraints, and audit logs)
-- **Authentication:** JWT in secure HttpOnly cookies, bcryptjs password hashing, server-side RBAC
-- **AI Automation:** Google Gemini 1.5 / 2.0 Flash with deterministic Tamil/English rule-based fallback
-- **Testing:** Vitest, Supertest, React Testing Library
+**Assessment Brief:** Isocode Labs Software Engineering Intern Take-Home Assessment  
+**Project:** KnitTrack — Production Order Tracking System for Knitwear Exporters with Buyer View  
+**Target Client:** Company A, Tiruppur, Tamil Nadu, India (₹95–110 Cr Revenue, 900 Factory Operators)  
+**Author:** Ayan Ali ([GitHub](https://github.com/ayanali0249/knittrack-production-tracker))  
+**Date:** November 2026  
+**Document Classification:** Technical Evaluation & Deployment Baseline  
 
 ---
 
-## 2. Prerequisites & Required Software
+## 1. System Overview & Scope
 
-Ensure the following tools are installed on the deployment or development host:
-- **Node.js:** v18.0.0 or higher (v20+ recommended; verified on Node v24)
-- **npm:** v9.0.0 or higher
-- **PostgreSQL:** v14 or higher (or cloud database such as Neon, Supabase, Railway Postgres, or Render Postgres)
-- **Git:** v2.30+
+KnitTrack is an enterprise-grade production tracking and operational intelligence platform designed for knitwear apparel exporters in Tiruppur, Tamil Nadu. It provides end-to-end visibility across circular knitting manufacturing stages: **Cutting**, **Stitching**, **Printing**, **Washing**, **Finishing**, and **Packing**.
+
+The platform is structured into four decoupled layers:
+- **Presentation Layer:** React 19 Single Page Application built with TypeScript 5.7, Vite 8.3, and Tailwind CSS v4. Includes desktop analytics for merchandisers, high-contrast touch forms for Android mobile supervisors, and a tenant-isolated portal for international retail buyers.
+- **API Gateway & Security Layer:** Node.js Express 4.21 server enforcing Helmet HTTP headers, CORS origin protection, environment-aware rate limiting, HttpOnly cookie JWT session authentication, and Zod schema validation.
+- **Core Domain Services:** Layered business logic including the Order & Milestone Service, Deterministic Delay Prediction Engine (5-day business week run-rate arithmetic), Bilingual NLP AI Note Classifier (Google Gemini API with deterministic regex fallback), and Supervisor Floor Update Service.
+- **Persistence & Storage Layer:** PostgreSQL 17 relational database managed through Prisma ORM 5.22 (3NF schema with foreign keys and compound unique constraints), with local disk storage for garment assembly photographs.
 
 ---
 
-## 3. Environment Variables Specification
+## 2. System Prerequisites
 
-### Backend (`backend/.env`)
-Copy `backend/.env.example` to `backend/.env` and configure the following parameters:
+Before deploying or running KnitTrack, ensure the following runtime dependencies are installed on the host machine:
+
+| Component | Minimum Required Version | Recommended Version | Verification Command |
+|---|---|---|---|
+| **Node.js** | `v18.0.0` | `v20.x` or `v24.x` (LTS) | `node -v` |
+| **npm** | `v9.0.0` | `v10.x` or higher | `npm -v` |
+| **PostgreSQL** | `v14.0` | `v17.x` (or managed Neon/Supabase) | `psql -V` |
+| **Git** | `v2.30.0` | Latest release | `git --version` |
+| **PowerShell** (Windows) | `5.1` or `7.x` | Windows Terminal / PowerShell 7 | `$PSVersionTable.PSVersion` |
+
+---
+
+## 3. Environment Configuration & Security Best Practices
+
+KnitTrack maintains a strict separation between configuration, credentials, and code. Environment variables are loaded at startup via `dotenv`.
+
+> **CRITICAL SECURITY NOTICE:**
+> - Never commit `.env` files or hardcoded credentials into Git.
+> - The values below use safe placeholders. In production, generate cryptographically random secrets.
+> - Seeded demo credentials are provided **strictly for local evaluation** and must never be used in a public or production environment.
+
+### 3.1 Backend Configuration (`backend/.env`)
+
+Copy `backend/.env.example` to `backend/.env`:
+
+```bash
+# Windows PowerShell
+Copy-Item backend\.env.example backend\.env
+
+# Linux / macOS
+cp backend/.env.example backend/.env
+```
+
+Configure `backend/.env` with your local settings:
 
 ```env
-# Database Connection URL (PostgreSQL)
-DATABASE_URL="postgresql://postgres:password@localhost:5432/knittrack?schema=public"
+# -----------------------------------------------------------------------------
+# DATABASE CONNECTION
+# -----------------------------------------------------------------------------
+# Format: postgresql://<username>:<password>@<host>:<port>/<database>?schema=public
+DATABASE_URL="postgresql://postgres:YOUR_LOCAL_DB_PASSWORD@localhost:5432/knittrack?schema=public"
 
-# Authentication Secrets
-JWT_SECRET="knittrack-secure-production-jwt-secret-min-32-chars-key-2026"
+# -----------------------------------------------------------------------------
+# AUTHENTICATION & JWT SECURITY
+# -----------------------------------------------------------------------------
+# High-entropy random secret (minimum 32 characters for production HMAC SHA-256)
+JWT_SECRET="knittrack-evaluation-secret-key-min-32-chars-2026-secure"
 JWT_EXPIRES_IN="24h"
 
-# Server Configuration
+# -----------------------------------------------------------------------------
+# SERVER & NETWORK CONFIGURATION
+# -----------------------------------------------------------------------------
 PORT=3001
 NODE_ENV="development"
-
-# CORS Origin Allowed
 FRONTEND_URL="http://localhost:5173"
 
-# Google Gemini AI Integration (Tamil & English note classification)
+# -----------------------------------------------------------------------------
+# GOOGLE GEMINI AI CONFIGURATION (OPTIONAL)
+# -----------------------------------------------------------------------------
 # Obtain a free API key at: https://aistudio.google.com/
+# If left empty, KnitTrack automatically activates its embedded Tamil/English
+# deterministic keyword fallback classifier without throwing runtime errors.
 GEMINI_API_KEY=""
 
-# File Upload Configuration
+# -----------------------------------------------------------------------------
+# FILE STORAGE & RATE LIMITING
+# -----------------------------------------------------------------------------
 UPLOAD_DIR="./uploads"
 MAX_FILE_SIZE_MB=5
 
-# Rate Limiting (Optional overrides — defaults to 5000/200 in dev, 100/10 in prod)
+# Rate Limits (Dev: 5,000 API / 200 Auth; Production: 100 API / 10 Auth per 15 min)
 RATE_LIMIT_API_MAX=5000
 RATE_LIMIT_AUTH_MAX=200
 ```
 
-> **Note on AI Fallback:** If `GEMINI_API_KEY` is not provided, KnitTrack automatically activates its rule-based keyword classifier for Tamil ("மெஷின் பழுதாகிவிட்டது", "தொழிலாளர்கள் குறைவாக உள்ளனர்", "துணி இன்னும் வரவில்லை", etc.) and English floor notes, maintaining full system functionality without throwing runtime errors.
+### 3.2 Frontend Configuration (`frontend/.env`)
 
-### Frontend (`frontend/.env`)
-Create `frontend/.env` (optional, defaults to relative `/api` proxy in Vite):
+The frontend dev server uses Vite's built-in reverse proxy configured in `frontend/vite.config.ts`, directing `/api` requests to `http://localhost:3001`.
+
+If deploying to a custom host or CDN, create `frontend/.env`:
 
 ```env
 VITE_API_URL="/api"
@@ -76,167 +111,204 @@ VITE_API_URL="/api"
 
 ---
 
-## 4. Step-by-Step Local Setup
+## 4. Step-by-Step Local Deployment Runbook
 
-### Step 4.1: Clone the Repository
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/ayanali0249/knittrack-production-tracker.git
 cd knittrack-production-tracker
 ```
 
-### Step 4.2: Backend Setup & Dependencies
+### Step 2: Install Dependencies
+Install both backend and frontend dependencies:
+
 ```bash
+# Install backend dependencies
 cd backend
 npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+
+# Return to root
+cd ..
 ```
 
-### Step 4.3: Database Migration & Schema Generation
-Ensure your PostgreSQL instance is running and `DATABASE_URL` is set in `backend/.env`.
-```bash
-# Generate Prisma Client
-npx prisma generate
+### Step 3: Database Initialization & Migrations
 
-# Push schema directly to database (or run migrations)
+Ensure your PostgreSQL service is running on `localhost:5432`.
+
+```powershell
+# Windows PowerShell: Verify PostgreSQL service status
+Get-Service -Name postgresql*
+# If stopped, start it:
+Start-Service postgresql-x64-17
+```
+
+```bash
+# Linux / macOS: Verify PostgreSQL service status
+sudo systemctl status postgresql
+# If stopped, start it:
+sudo systemctl start postgresql
+```
+
+Create the `knittrack` database if it does not already exist:
+```sql
+-- Connect via psql:
+CREATE DATABASE knittrack;
+```
+
+#### Safe Schema Synchronization (Non-Destructive)
+Synchronize the Prisma schema with the PostgreSQL database:
+```bash
+cd backend
+npx prisma generate
 npx prisma db push
 ```
+> **Notice:** `npx prisma db push` synchronizes table structures, relations, and unique constraints without dropping or clearing existing production orders.
 
-### Step 4.4: Seed Realistic Sample Data
-The seed script populates the database with the exact required assessment orders, Tiruppur factory units, and test accounts.
+#### Seed Demo Data (Destructive to Existing Orders)
+> **WARNING:** The seed script (`npm run db:seed`) clears existing orders and audit logs, repopulating the database with the standard 7 sample assessment orders and 8 demo persona accounts. Only run this during initial setup or when resetting demo data.
+
 ```bash
+cd backend
 npm run db:seed
 ```
 
-### Step 4.5: Frontend Setup & Dependencies
-Open a second terminal window:
+#### Safe Read-Only Verification
+To verify the database state without modifying or clearing any records, run the read-only verification harness:
 ```bash
-cd ../frontend
-npm install
+npx tsx backend/scripts/verify-orders.ts
+```
+Expected output:
+```text
+Total Seeded Orders Found: 7
+[A-PO-5510] Women's hoodie, charcoal | Ex-Factory: 2026-11-08 | Risk: DELAYED
+[A-PO-5525] Men's jogger pants, olive | Ex-Factory: 2026-12-15 | Risk: ON_TRACK
+[B-PO-88213] Men's crew neck tee, navy | Ex-Factory: 2026-11-20 | Risk: ON_TRACK
+[B-PO-88240] Men's polo, white | Ex-Factory: 2026-11-12 | Risk: AT_RISK
+[B-PO-88260] Men's V-neck tee, burgundy | Ex-Factory: 2026-12-20 | Risk: ON_TRACK
+[C-PO-0488] Kids printed tee, yellow | Ex-Factory: 2026-11-28 | Risk: ON_TRACK
+[C-PO-0512] Women's tank top, coral | Ex-Factory: 2026-10-25 | Risk: ON_TRACK
+Total Users in Database: 8
 ```
 
 ---
 
 ## 5. Starting the Application
 
-### Running Backend (Development Mode)
+For local evaluation, run the backend API server and frontend development server concurrently in two terminal sessions:
+
+### Terminal 1: Backend API Service
 ```bash
 cd backend
 npm run dev
-# Server listens on http://localhost:3001
 ```
+- **Service Endpoint:** `http://localhost:3001`
+- **Health Check:** `http://localhost:3001/api/health` (returns `{"status":"ok"}`)
 
-### Running Frontend (Development Mode)
+### Terminal 2: Frontend Client Application
 ```bash
 cd frontend
 npm run dev
-# Vite dev server runs on http://localhost:5173
 ```
-Open your browser and navigate to `http://localhost:5173`.
+- **Application URL:** `http://localhost:5173`
+- Vite automatically proxies `/api` requests to `http://localhost:3001/api`.
+
+Open your browser and navigate to: **`http://localhost:5173`**
 
 ---
 
-## 6. Seeded Demo Accounts (One-Click Login Ready)
+## 6. Seeded Demo Persona Accounts
 
-The application includes pre-configured demo user personas matching the Tiruppur export workflow:
+The database includes 6 pre-configured user personas representing the Tiruppur export hierarchy. Evaluators can log in using the credentials below, or click any account in the frontend **Demo Switcher** banner:
 
-| Role | Email | Password | Persona & Scope |
-|---|---|---|---|
-| **Merchandiser** | `merch@knittrack.com` | `merch123` | Priya Sundaram — Full order creation, TNA editing, delay audits, AI category corrections |
-| **Supervisor (Unit 1)** | `supervisor1@knittrack.com` | `super123` | K. Murugan — Angeripalayam Main Unit; mobile floor updates, daily piece entry, photo proof |
-| **Supervisor (Unit 2)** | `supervisor2@knittrack.com` | `super123` | S. Selvaraj — Kangeyam Road Unit; mobile floor updates |
-| **Buyer (Company B)** | `buyer.b@knittrack.com` | `buyer123` | Sarah Johnson — Company B (UK); read-only portal for B-PO-88213 and B-PO-88240 |
-| **Buyer (Company C)** | `buyer.c@knittrack.com` | `buyer123` | Hans Mueller — Company C (Germany); read-only portal for C-PO-0488 |
-| **System Admin** | `admin@knittrack.com` | `admin123` | System Administrator — Full factory management, user oversight, audit logs |
+| Role | Email | Password | Persona & Assigned Scope | Operational Boundaries |
+|---|---|---|---|---|
+| **Merchandiser** | `merch@knittrack.com` | `merch123` | Priya Sundaram (Senior Merchandiser) | Full order creation, multi-size breakdowns, TNA milestone configuration, run-rate analytics, AI classification overrides |
+| **Supervisor (Unit 1)** | `supervisor1@knittrack.com` | `super123` | K. Murugan (Unit 1 Main Supervisor) | Mobile daily shift logging, Tamil/English floor notes, photo proof uploads. Scoped to Unit 1 orders |
+| **Supervisor (Unit 2)** | `supervisor2@knittrack.com` | `super123` | S. Selvaraj (Unit 2 Finishing Supervisor) | Mobile daily shift logging. Scoped to Unit 2 orders |
+| **Buyer (Company B)** | `buyer.b@knittrack.com` | `buyer123` | Sarah Johnson (Company B, UK) | Read-only milestone progress, shipment countdown, approved photos for orders `B-PO-88213`, `B-PO-88240`, `B-PO-88260`. Zero access to Unit costs or Company C data |
+| **Buyer (Company C)** | `buyer.c@knittrack.com` | `buyer123` | Hans Mueller (Company C, Germany) | Read-only visibility strictly for orders `C-PO-0488` and `C-PO-0512`. Strictly isolated from Company B |
+| **Administrator** | `admin@knittrack.com` | `admin123` | Factory General Manager | Global oversight, role provisioning, system settings, immutable audit log inspection |
 
-> **Security Note:** Demo credentials are only for evaluation and local environments. In production, change all default passwords and enforce high-entropy credentials.
+> **Security Note:** All passwords in the database are stored as bcrypt hashes with 10 salt rounds. These accounts exist strictly for local evaluation.
 
 ---
 
-## 7. Running Automated Test Suites
+## 7. Automated Testing & Verification Suite
 
-The project maintains comprehensive test coverage across mathematical business logic, delay prediction, AI classification, authentication, and order workflows.
+KnitTrack maintains 100% pass rates across unit, integration, and security test suites.
 
-### Backend Unit & Integration Tests (Vitest)
+### 7.1 Running Backend Tests (Vitest & Supertest)
 ```bash
 cd backend
 npm test
 ```
 **Test Results (82 tests passing):**
-- `src/__tests__/delay.test.ts`: 24 passing tests (business day logic, rate calculations, zero rates, past deadlines, risk classification)
-- `src/__tests__/ai.test.ts`: 13 passing tests (Tamil notes, English notes, empty notes, fallback mode, audit trails)
-- `src/__tests__/auth.test.ts`: 12 passing tests (login, cookie issuance, RBAC, wrong password, token validation)
-- `src/__tests__/orders.test.ts`: 20 passing tests (order creation, validation, tenant data isolation, supervisor scoping)
-- `src/__tests__/rbac_isolation.test.ts`: 13 passing tests (role boundaries, cross-buyer data isolation, timeline scoping, session clearing)
-- **Total Backend: 82 tests passing (100% pass rate)**
+- `src/__tests__/delay.test.ts` (24 tests): 5-day business week calculations, actual run rate, required run rate, zero output, past deadline conditions, and deterministic risk boundaries (`ON_TRACK`, `AT_RISK`, `DELAYED`).
+- `src/__tests__/ai.test.ts` (13 tests): Tamil phrases, English text, whitespace resilience, rule-based fallback dictionary, and audit log generation on manual corrections.
+- `src/__tests__/orders.test.ts` (20 tests): Purchase order creation, duplicate PO rejection, size ratio JSON validation, supervisor unit scoping, and pagination.
+- `src/__tests__/auth.test.ts` (12 tests): Credential verification, bcrypt check, HttpOnly cookie issuance, token decoding, and cookie clearing on logout.
+- `src/__tests__/rbac_isolation.test.ts` (13 tests): Cross-role 403 enforcement, Buyer B vs Buyer C isolation, timeline scoping, supervisor floor limits, and session invalidation.
 
-### Frontend Tests
+### 7.2 Running Frontend Tests (Vitest)
 ```bash
 cd frontend
 npm test
 ```
 **Test Results (4 tests passing):**
-- `src/__tests__/StatusBadge.test.tsx`: 4 passing tests (render On Track, At Risk, Delayed, AI Category badges)
+- `src/__tests__/StatusBadge.test.tsx` (4 tests): Status badge semantic color rendering, risk level labels, and accessibility attributes.
 
-**Grand Total: 86 automated tests passing across full stack (100% pass rate).**
+### 7.3 Grand Total
+```text
+Total Automated Tests: 86 passed / 86 total (100% pass rate)
+```
 
-### TypeScript Verification & Production Builds
+### 7.4 TypeScript Compiler & Production Build Checks
 ```bash
-# Verify backend build
+# Verify backend TypeScript compilation
 cd backend
 npm run build
+# Expected: Exit code 0, clean output in backend/dist/
 
-# Verify frontend build
+# Verify frontend production bundle
 cd ../frontend
 npm run build
+# Expected: Exit code 0, optimized bundle in frontend/dist/
 ```
 
 ---
 
-## 8. Production Cloud Deployment Guide
+## 8. Production Cloud Deployment Blueprint
 
-### Option A: Database on Neon / Supabase (Free PostgreSQL)
-1. Sign up at [Neon.tech](https://neon.tech) or [Supabase.com](https://supabase.com).
-2. Create a new PostgreSQL database project named `knittrack`.
-3. Copy the pooled connection string `postgresql://...` and set it as `DATABASE_URL`.
+KnitTrack is designed for stateless containerized deployment on cloud infrastructure:
 
-### Option B: Backend Deployment on Render / Railway
-1. Fork or push the repository to your public GitHub account.
-2. In [Render](https://render.com) or [Railway](https://railway.app), create a new **Web Service**.
-3. Set **Root Directory** to `backend`.
-4. Set **Build Command** to: `npm install && npx prisma generate && npm run build`
-5. Set **Start Command** to: `npx prisma db push && npm run db:seed && npm start`
-6. Configure Environment Variables:
-   - `DATABASE_URL`: Hosted PostgreSQL connection string
-   - `JWT_SECRET`: High-entropy 32+ character string
-   - `FRONTEND_URL`: URL of your deployed frontend (e.g. `https://knittrack.vercel.app`)
-   - `NODE_ENV`: `production`
-   - `GEMINI_API_KEY`: Google Gemini API key
-
-### Option C: Frontend Deployment on Vercel
-1. In [Vercel](https://vercel.com), import your GitHub repository.
-2. Set **Root Directory** to `frontend`.
-3. Set **Framework Preset** to `Vite`.
-4. Set **Build Command** to: `npm run build`
-5. Set **Output Directory** to: `dist`
-6. Add Environment Variable:
-   - `VITE_API_URL`: URL of your backend (e.g. `https://knittrack-backend.onrender.com/api`)
-7. Click **Deploy**.
+### Architecture Mapping
+- **Frontend SPA:** Deploy to Vercel or Netlify. Set build command to `npm run build` and output directory to `dist`. Set `VITE_API_URL` to your production backend URL.
+- **Backend API Service:** Deploy to Render, Railway, or AWS ECS Fargate as a containerized Node.js service. Set build command to `npm install && npx prisma generate && npm run build` and start command to `node dist/index.js`.
+- **Database:** Deploy on managed PostgreSQL (AWS RDS, Neon.tech, or Supabase). Set `DATABASE_URL` with SSL mode enabled (`?sslmode=require`).
+- **Object Storage:** In production, configure an AWS S3 bucket or Cloudflare R2 bucket with presigned upload URLs, replacing the local Multer disk storage.
 
 ---
 
-## 9. Troubleshooting & Common Issues
+## 9. Comprehensive Troubleshooting & Error Matrix
 
-| Issue | Root Cause | Solution |
+| Symptom / Error | Root Cause | Verified Resolution |
 |---|---|---|
-| `Prisma Client not initialized` | Prisma binary not generated | Run `cd backend && npx prisma generate` |
-| `connect ECONNREFUSED 5432` | PostgreSQL is not running or invalid connection string | Verify `DATABASE_URL` in `backend/.env` and verify database server status |
-| `AI returns fallback mode` | `GEMINI_API_KEY` is empty | Provide key from [aistudio.google.com](https://aistudio.google.com/) or rely on deterministic keyword fallback |
-| `CORS Error on API requests` | `FRONTEND_URL` mismatch | Set `FRONTEND_URL` in backend `.env` to match frontend origin |
-| `Cookie not set on cross-domain` | SameSite / Secure cookie policy | When hosting frontend and backend on different domains, configure `cookieOptions: { sameSite: 'none', secure: true }` |
+| `connect ECONNREFUSED 127.0.0.1:5432` | PostgreSQL service is stopped or port 5432 is blocked | Start the PostgreSQL service (`Start-Service postgresql*` on Windows or `sudo systemctl start postgresql` on Linux). Verify `DATABASE_URL` in `backend/.env`. |
+| `connect EACCES 127.0.0.1:<port>` during Supertest | Windows terminal sandbox socket binding restriction | Run integration tests with socket permissions enabled or execute outside constrained sandbox environments. |
+| `PrismaClientInitializationError: relation ... does not exist` | Database tables have not been created | Run `cd backend && npx prisma db push` to synchronize the schema. |
+| `HTTP 429: Too many requests. Please try again later.` | Rate limiter threshold exceeded | The development rate limiter allows 5,000 API requests and 200 auth attempts per 15 min. If triggered, wait for the 15-minute window or restart the backend process to reset memory counters. |
+| `AI returns fallbackMode: true` | `GEMINI_API_KEY` is not provided or network timed out | This is expected behavior. KnitTrack automatically activates its embedded Tamil regex keyword classifier, ensuring full operational capability without an external API key. |
+| `CORS Error: No 'Access-Control-Allow-Origin' header` | `FRONTEND_URL` mismatch | Verify that `FRONTEND_URL` in `backend/.env` exactly matches the browser origin (default: `http://localhost:5173`). |
+| `Authentication cookie not preserved across requests` | Browser third-party cookie blocking or domain mismatch | Ensure credentials are included in client requests (`withCredentials: true`). In cross-origin deployments, configure `sameSite: 'none'` and `secure: true`. |
 
 ---
 
-## 10. Known Architectural Limitations
+## 10. Operational Limitations & V2 Engineering Roadmap
 
-1. **Photo Storage in Development:** By default, photos uploaded from supervisor mobile devices are written to local disk (`backend/uploads`). In enterprise production, swap the local Multer disk storage for an S3/Cloud Storage presigned URL pipeline.
-2. **Offline Synchronization:** The mobile interface alerts the user when offline; in the present MVP, updates are submitted when online. Background ServiceWorker synchronization with IndexedDB queuing is planned for v2.
-3. **Buyer Self-Registration:** Buyers cannot register publicly without authorization; buyer accounts are provisioned exclusively by factory Merchandisers or Administrators to prevent data leakage.
+1. **Local Media Storage:** In local development, uploaded supervisor garment photos are stored in `backend/uploads/`. Production migration requires swapping local Multer storage for an S3-compatible cloud storage pipeline with presigned upload URLs.
+2. **Offline Synchronization:** The mobile floor update UI alerts supervisors when connectivity drops. Full offline ServiceWorker queueing with IndexedDB synchronization is architected for the v2 release.
+3. **In-Memory Rate Limiting:** Current rate limiting utilizes Node.js process memory. In a distributed multi-instance deployment, rate limiting should be backed by a centralized Redis cluster.

@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Repository:** [https://github.com/ayanali0249/knittrack-production-tracker](https://github.com/ayanali0249/knittrack-production-tracker)  
-> **Documentation:** [Technical Design Document](Technical_Design_Document.docx) • [Deployment Guide](deployment.md)  
+> **Documentation:** [Technical Design Document](KnitTrack_Technical_Design_Document.docx) • [Deployment Guide](deployment.md)  
 > **Author:** Ayan Ali ([GitHub](https://github.com/ayanali0249) • [LinkedIn](https://www.linkedin.com/in/ayanali0249) • [Portfolio](https://ayan-ali-0249.netlify.app))  
 > **Assessment Context:** Isocode Labs Software Engineering Intern Take-Home Assessment (Knitwear Exporter Order-Tracking System with Buyer View)
 
@@ -36,7 +36,7 @@ Traditionally, operations suffer from three critical bottlenecks:
 
 ## 2. System Architecture
 
-KnitTrack follows a decoupled three-tier enterprise client-server architecture with strict separation of concerns, robust type safety, and cryptographic tenant boundary enforcement:
+KnitTrack follows a decoupled three-tier enterprise client-server architecture with strict separation of concerns, robust type safety, and row-level tenant data isolation:
 
 ```mermaid
 flowchart TD
