@@ -164,7 +164,7 @@ async function generateTDD() {
           new Paragraph({ text: '4. Assumptions [EXPLICITLY LABELED]', heading: HeadingLevel.HEADING_1 }),
           new Paragraph({
             text:
-              '• [ASSUMPTION-1: Working Days] Tiruppur textile mills operate on a 6-day production workweek (Monday through Saturday). Sundays are non-working days excluded from delay and run-rate calculations.\n' +
+              '• [ASSUMPTION-1: Working Days] Production schedules and run-rate calculations are evaluated on standard Monday through Friday business days (5 days/week), excluding weekends (Saturday and Sunday). Past deadlines with remaining work automatically flag as DELAYED.\n' +
               '• [ASSUMPTION-2: Stage Dependencies] Garment manufacturing follows a sequential flow where milestone progress is tracked per stage. Overlapping stages are supported via configured planned start dates.\n' +
               '• [ASSUMPTION-3: AI Fallback Model] If the external Google Gemini API is unreachable, times out, or has no configured API key, the system activates a deterministic rule-based Tamil keyword classifier to ensure uninterrupted floor logging.\n' +
               '• [ASSUMPTION-4: Time Zone] All ex-factory milestones, planned dates, and daily updates are evaluated in Indian Standard Time (IST, UTC+05:30).\n' +
@@ -231,7 +231,7 @@ async function generateTDD() {
               'KnitTrack completely rejects opaque, arbitrary risk scores in favor of a deterministic, mathematically transparent calculation model designed around Tiruppur industry dynamics.\n\n' +
               'Core Calculation Formulas:\n' +
               '1. Remaining Quantity = Planned Quantity - Completed Quantity\n' +
-              '2. Elapsed Business Days = Business days elapsed since stage actual start date (skipping Sundays)\n' +
+              '2. Elapsed Business Days = Business days elapsed since stage actual start date (skipping Saturday and Sunday)\n' +
               '3. Actual Daily Run Rate = Completed Quantity / Elapsed Business Days (when elapsed > 0)\n' +
               '4. Remaining Business Days = Business days remaining until stage planned end date\n' +
               '5. Required Daily Run Rate = Remaining Quantity / Remaining Business Days (when remaining days > 0)\n' +

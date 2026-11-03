@@ -7,7 +7,7 @@ export class ProductionController {
    * POST /api/production/updates
    */
   async submitUpdate(req: AuthRequest, res: Response) {
-    const update = await productionService.submitUpdate(req.body, req.user!);
+    const update = await productionService.submitUpdate(req.body, req.user!, req.file);
     res.status(201).json({ success: true, data: update });
   }
 

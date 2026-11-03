@@ -4,6 +4,7 @@ import { productionController } from '../controllers/production.controller';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { validate } from '../middleware/validate';
+import { upload } from '../middleware/upload';
 import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
@@ -14,13 +15,13 @@ router.use(authenticate);
 // Validation schemas
 const submitUpdateSchema = z.object({
   orderStageId: z.string().min(1, 'Stage ID is required'),
-  date: z.string().refine((d) => !isNaN(Date.parse(d)), 'Invalid date format'),
-  quantity: z.number().int().min(0, 'Quantity must be non-negative'),
+  date: z.string().refine((d) => !isNaN(Date.parse(d)), 'Invalid date format').default(() => new Date().toISOString().split('T')[0]),
+  quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
   note: z.string().optional(),
 });
 
 const editUpdateSchema = z.object({
-  quantity: z.number().int().min(0).optional(),
+  quantity: z.coerce.number().int().min(0).optional(),
   note: z.string().optional(),
 }).refine((data) => data.quantity !== undefined || data.note !== undefined, {
   message: 'At least one field (quantity or note) must be provided',
@@ -30,6 +31,7 @@ const editUpdateSchema = z.object({
 router.post(
   '/updates',
   requireRole('ADMIN', 'SUPERVISOR'),
+  upload.single('photo'),
   validate(submitUpdateSchema),
   asyncHandler(async (req, res) => productionController.submitUpdate(req, res))
 );

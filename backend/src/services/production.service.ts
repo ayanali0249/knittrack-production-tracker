@@ -9,7 +9,11 @@ export class ProductionService {
    * Submit a daily production update for a stage.
    * Supervisors can only update stages in their production unit.
    */
-  async submitUpdate(input: CreateProductionUpdateInput, user: JwtPayload) {
+  async submitUpdate(
+    input: CreateProductionUpdateInput,
+    user: JwtPayload,
+    file?: Express.Multer.File
+  ) {
     // Load stage with order info
     const stage = await prisma.orderStage.findUnique({
       where: { id: input.orderStageId },
@@ -72,6 +76,21 @@ export class ProductionService {
           orderStage: { select: { id: true, stageName: true } },
         },
       });
+
+      // Save attached photograph if provided
+      if (file) {
+        await tx.productionPhoto.create({
+          data: {
+            productionUpdateId: update.id,
+            orderId: stage.order.id,
+            filename: file.filename,
+            path: file.path,
+            mimeType: file.mimetype,
+            size: file.size,
+            approved: false,
+          },
+        });
+      }
 
       // Update stage quantities and status
       const stageUpdate: Prisma.OrderStageUpdateInput = {

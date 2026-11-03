@@ -45,14 +45,16 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // ── Health check ──────────────────────────────
-app.get('/api/health', (_req, res) => {
+const healthHandler = (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
     message: 'KnitTrack API is running',
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv,
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // ── API Routes ────────────────────────────────
 app.use('/api/auth', authRoutes);
