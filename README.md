@@ -7,7 +7,6 @@
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Tests](https://img.shields.io/badge/Tests-86%2F86%20Passing%20(100%25)-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Repository:** [https://github.com/ayanali0249/knittrack-production-tracker](https://github.com/ayanali0249/knittrack-production-tracker)  
 > **Documentation:** [Technical Design Document (DOCX)](KnitTrack_Technical_Design_Document.docx) • [Technical Design Document (PDF)](docs/assets/KnitTrack_Technical_Design_Document.pdf) • [Deployment Guide](deployment.md)  
@@ -184,7 +183,7 @@ The backend classifies supervisor notes into 8 standardized industry categories:
 
 ## 7. User Roles & Access Control (RBAC)
 
-![RBAC & Tenant Isolation](docs/assets/figure5_rbac_isolation.png)
+![RBAC & Tenant Isolation](docs/assets/figure5_rbac_tenant_isolation.png)
 
 Identity and privileges are established via HMAC SHA-256 JWTs stored in `HttpOnly` cookies and verified against database records on every request:
 
