@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { orderService } from '../services/order.service';
+import { productionService } from '../services/production.service';
 import { aiService } from '../services/ai.service';
 import { dashboardService } from '../services/dashboard.service';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,9 @@ import {
   AlertCircle,
   Camera,
   Layers,
+  Eye,
+  EyeOff,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const OrderDetailPage: React.FC = () => {
@@ -33,10 +37,11 @@ export const OrderDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Correction state
+  // Correction & Buyer Warning Approval states
   const [correctingUpdateId, setCorrectingUpdateId] = useState<string | null>(null);
   const [selectedCorrection, setSelectedCorrection] = useState<string>('Machine breakdown');
   const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+  const [isTogglingApproval, setIsTogglingApproval] = useState<string | null>(null);
 
   const fetchOrderDetail = async () => {
     if (!id) return;
@@ -69,6 +74,18 @@ export const OrderDetailPage: React.FC = () => {
       alert(err.response?.data?.error || 'Failed to save correction.');
     } finally {
       setIsSavingCorrection(false);
+    }
+  };
+
+  const handleToggleBuyerApproval = async (updateId: string, currentApproved: boolean) => {
+    setIsTogglingApproval(updateId);
+    try {
+      await productionService.approveBuyerWarning(updateId, !currentApproved);
+      await fetchOrderDetail();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update buyer warning visibility.');
+    } finally {
+      setIsTogglingApproval(null);
     }
   };
 
@@ -369,7 +386,7 @@ export const OrderDetailPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
                       {update.correctedCategory ? (
                         <div className="text-right">
                           <span className="text-[10px] text-amber-600 font-semibold block">
@@ -381,22 +398,56 @@ export const OrderDetailPage: React.FC = () => {
                         <div className="text-right">
                           <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1 justify-end">
                             <Sparkles className="w-3 h-3" />
-                            AI Classified:
+                            AI Suggestion ({Math.round((update.aiConfidence || 0.85) * 100)}%):
                           </span>
                           <StatusBadge type="category" value={update.aiCategory} />
                         </div>
                       ) : null}
 
-                      {/* Merchandiser Correction Button */}
-                      {isMerchOrAdmin && (
-                        <button
-                          onClick={() => setCorrectingUpdateId(update.id)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded border border-slate-200 transition-colors"
-                          title="Correct AI Category"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      {/* Buyer Warning Approval Status Badge */}
+                      <div className="flex items-center gap-1.5">
+                        {update.buyerWarningApproved ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                            <Eye className="w-3 h-3 text-emerald-600" />
+                            Buyer Warning: Approved
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                            <EyeOff className="w-3 h-3 text-amber-600" />
+                            Buyer Warning: Internal Only
+                          </span>
+                        )}
+
+                        {/* Merchandiser Action Buttons */}
+                        {isMerchOrAdmin && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleToggleBuyerApproval(update.id, update.buyerWarningApproved || false)}
+                              disabled={isTogglingApproval === update.id}
+                              className={`px-2 py-1 text-[11px] font-bold rounded border transition-colors ${
+                                update.buyerWarningApproved
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                              title={update.buyerWarningApproved ? 'Revoke buyer visibility' : 'Approve warning for buyer portal'}
+                            >
+                              {isTogglingApproval === update.id
+                                ? 'Updating...'
+                                : update.buyerWarningApproved
+                                ? 'Revoke Buyer Warning'
+                                : 'Approve for Buyer'}
+                            </button>
+
+                            <button
+                              onClick={() => setCorrectingUpdateId(update.id)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded border border-slate-200 transition-colors"
+                              title="Correct AI Category"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

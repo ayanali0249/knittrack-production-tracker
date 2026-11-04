@@ -6,7 +6,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v14%2B-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Tests-86%2F86%20Passing%20(100%25)-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-102%2F102%20Passing%20(100%25)-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
 
 > **Repository:** [https://github.com/ayanali0249/knittrack-production-tracker](https://github.com/ayanali0249/knittrack-production-tracker)  
 > **Documentation:** [Technical Design Document (DOCX)](KnitTrack_Technical_Design_Document.docx) • [Technical Design Document (PDF)](docs/assets/KnitTrack_Technical_Design_Document.pdf) • [Deployment Guide](deployment.md)  
@@ -27,9 +27,9 @@ Traditionally, export manufacturing operations face three recurring operational 
 **KnitTrack** is a full-stack production tracking and visibility system engineered for knitwear apparel exporters. It provides:
 - A centralized **Production Order Management Board** with on-demand status, run rates, and risk indicators.
 - An explainable, **Deterministic Delay Prediction Engine** calculating required vs. actual daily production rates using a 5-day business week model.
-- A **Touch-Optimized Mobile Floor Update Screen** for factory floor supervisors with quick-fill quantity buttons, photo proof attachments, and Tamil/English note logging.
+- A **Touch-Optimized Mobile Floor Update Screen** for factory floor supervisors with quick-fill quantity buttons, photo proof attachments, Tamil/English note logging, and **offline-first IndexedDB queueing with `clientRequestId` idempotency** for uninterrupted logging during factory network dead spots.
 - An **AI-Assisted Tamil & English Note Classifier** configured for Google Gemini (`gemini-3.8-flash`) with an in-memory keyword regex fallback that categorizes floor delay reasons.
-- A **Tenant-Isolated Buyer Tracking Portal** offering international apparel buyers on-demand milestone progress, shipment countdowns, and approved assembly photos while strictly hiding internal costs, margins, and other brands' orders.
+- A **Tenant-Isolated Buyer Tracking Portal** offering international apparel buyers on-demand milestone progress, shipment countdowns, approved assembly photos, and **merchandiser-approved advisories** while strictly hiding internal costs, margins, unapproved warnings, and other brands' orders.
 
 ---
 
@@ -349,7 +349,7 @@ The top navigation bar includes an automated **Demo Persona Switcher** for one-c
 
 ## 12. Automated Testing & Verification Results
 
-The project enforces end-to-end type safety, unit verification, and API security tests with **86 automated tests (100% passing)**.
+The project enforces end-to-end type safety, unit verification, offline queue testing, and API security tests with **102 automated tests (100% passing)**.
 
 ### Running Backend Tests
 ```powershell
@@ -357,12 +357,13 @@ cd backend
 npm test
 ```
 
-**Verified Test Suites (82 tests passing, Exit Code: 0):**
+**Verified Backend Test Suites (89 tests passing across 6 suites, Exit Code: 0):**
 - `src/__tests__/delay.test.ts` (24 tests): 5-day business week logic, elapsed days, required run rates, zero-rate safeguards, and risk boundary thresholds.
 - `src/__tests__/ai.test.ts` (13 tests): Colloquial Tamil phrases, bilingual notes, rule-based keyword fallback, and audit logging.
 - `src/__tests__/orders.test.ts` (20 tests): PO CRUD, stage sequencing, Zod input validation, duplicate PO rejections, and supervisor scoping.
 - `src/__tests__/auth.test.ts` (12 tests): Login validation, password verification, HttpOnly cookie issuance, token expiration, and session retrieval.
 - `src/__tests__/rbac_isolation.test.ts` (13 tests): Role privilege boundaries, cross-role API rejection (403), Buyer B vs Buyer C tenant data isolation, supervisor unit isolation, and session clearing on logout.
+- `src/__tests__/buyer_approval.test.ts` (7 tests): Merchandiser warning approval, revocation, server-side filtering (unapproved floor warnings hidden from buyers), buyer modification rejection, and `clientRequestId` idempotency deduplication.
 
 ### Running Frontend Tests
 ```powershell
@@ -370,8 +371,9 @@ cd frontend
 npm test
 ```
 
-**Verified Frontend Test Suite (4 tests passing, Exit Code: 0):**
+**Verified Frontend Test Suites (13 tests passing across 2 suites, Exit Code: 0):**
 - `src/__tests__/StatusBadge.test.tsx` (4 tests): Status badge semantic color rendering (`On Track`, `At Risk`, `Delayed`, AI category badges).
+- `src/__tests__/offlineQueue.test.ts` (9 tests): IndexedDB queueing when offline, persistent offline state, automatic sync on network reconnection, FIFO queue ordering, retry on network errors, idempotency preservation via `clientRequestId`, and 401/403 safe retention without data loss.
 
 ### Production Build Verification
 ```powershell
@@ -383,7 +385,7 @@ npx tsc --noEmit
 # Frontend production build
 cd ../frontend
 npm run build
-# Exit Code: 0 (tsc -b && vite build compiles cleanly in 1.21s)
+# Exit Code: 0 (tsc -b && vite build compiles cleanly in 2.24s)
 ```
 
 ---
@@ -400,7 +402,8 @@ npm run build
 | `GET` | `/api/orders/:id` | Merchandiser, Supervisor, Buyer, Admin | Order detail and stages (Buyer strictly scoped) |
 | `PUT` | `/api/orders/:id` | Merchandiser, Admin | Updates PO metadata and stage dates |
 | `DELETE` | `/api/orders/:id` | Admin only | Restrictively deletes PO and associated stages |
-| `POST` | `/api/production/updates` | Supervisor, Admin | Submits daily shift count, photo, and note |
+| `POST` | `/api/production/updates` | Supervisor, Admin | Submits daily shift count, photo, note, and `clientRequestId` idempotency key |
+| `PUT` | `/api/production/updates/:id/approve-warning` | Merchandiser, Admin | Toggles `buyerWarningApproved` status; records audit trail |
 | `GET` | `/api/production/timeline/:id` | Merchandiser, Supervisor, Buyer, Admin | Historical shift update log for an order |
 | `GET` | `/api/dashboard/stats` | Merchandiser, Admin | Factory-wide throughput KPIs and delay counts |
 | `GET` | `/api/dashboard/delay/:orderId` | Merchandiser, Buyer, Admin | Transparent mathematical delay explanation |
@@ -427,7 +430,7 @@ npm run build
 
 ## 15. Known Limitations & Roadmap
 
-1. **ServiceWorker Offline Queueing (v2):** Mobile supervisor floor updates currently require an active network connection. A ServiceWorker with IndexedDB background sync is planned for intermittent factory Wi-Fi environments.
+1. **Closed-Browser Background Sync:** Offline queueing, persistence, and auto-sync on reconnect are fully implemented with IndexedDB and `clientRequestId` idempotency. Synchronization while the browser tab is entirely closed requires the experimental ServiceWorker Background Sync API.
 2. **Cloud Media Storage (v2):** Local file storage (`backend/uploads`) is used for local assessment self-containment. Production deployment will integrate an AWS S3 / Cloud Storage presigned URL pipeline.
 3. **Automated Buyer Notifications:** AI-generated automated messaging to external buyers is intentionally excluded. In export merchandising, buyer notifications must be reviewed by senior merchandisers before dispatch to maintain client trust.
 
@@ -435,8 +438,8 @@ npm run build
 
 ## 16. Assessment Deliverables & Links
 
-- **[Technical Design Document (DOCX)](KnitTrack_Technical_Design_Document.docx):** Complete 21-page architectural specification detailing problem domain, system design, database schema, mathematical delay model, and security controls.
-- **[Technical Design Document (PDF)](docs/assets/KnitTrack_Technical_Design_Document.pdf):** Rendered 21-page visual PDF of the Technical Design Document.
+- **[Technical Design Document (DOCX)](KnitTrack_Technical_Design_Document.docx):** Complete 24-page architectural specification detailing problem domain, system design, database schema, mathematical delay model, offline-first queueing, and security controls.
+- **[Technical Design Document (PDF)](docs/assets/KnitTrack_Technical_Design_Document.pdf):** Rendered 24-page visual PDF of the Technical Design Document.
 - **[Deployment Runbook (`deployment.md`)](deployment.md):** Complete operational guide covering local setup, PostgreSQL service configuration, production hosting, troubleshooting, and maintenance.
 - **Submission Archive:** `KnitTrack_Submission_Documentation.zip` (contains strictly `KnitTrack_Technical_Design_Document.docx` and `deployment.md`, size: ~350 KB, strictly under 25 MB).
 

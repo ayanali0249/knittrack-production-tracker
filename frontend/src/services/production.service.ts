@@ -37,4 +37,9 @@ export const productionService = {
     const response = await api.get(`/production/timeline/${orderId}`);
     return response.data.data;
   },
+
+  async approveBuyerWarning(updateId: string, approved: boolean = true): Promise<any> {
+    const response = await api.put(`/production/updates/${updateId}/approve-warning`, { approved });
+    return response.data.data;
+  },
 };

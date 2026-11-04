@@ -76,6 +76,19 @@ export class BuyerService {
             plannedEndDate: true,
             actualStartDate: true,
             actualEndDate: true,
+            productionUpdates: {
+              where: { buyerWarningApproved: true },
+              orderBy: { date: 'desc' },
+              select: {
+                id: true,
+                date: true,
+                quantity: true,
+                aiCategory: true,
+                correctedCategory: true,
+                note: true,
+                buyerWarningApproved: true,
+              },
+            },
           },
         },
         photos: {
@@ -117,11 +130,16 @@ export class BuyerService {
           orderBy: { sequence: 'asc' },
           include: {
             productionUpdates: {
+              where: { buyerWarningApproved: true }, // STRICT: Only merchandiser-approved warnings
               orderBy: { date: 'desc' },
               select: {
+                id: true,
                 date: true,
                 quantity: true,
                 aiCategory: true,
+                correctedCategory: true,
+                note: true,
+                buyerWarningApproved: true,
               },
             },
           },

@@ -39,6 +39,22 @@ export class ProductionService {
       throw new AppError('Quantity cannot be negative.', 400);
     }
 
+    // Idempotency check via clientRequestId (offline queue sync deduplication)
+    if (input.clientRequestId) {
+      const existingByReqId = await prisma.productionUpdate.findUnique({
+        where: { clientRequestId: input.clientRequestId },
+        include: {
+          supervisor: { select: { id: true, name: true } },
+          orderStage: { select: { id: true, stageName: true } },
+        },
+      });
+
+      if (existingByReqId) {
+        // Idempotent duplicate: return existing update without duplicate insertion or stage increment
+        return existingByReqId;
+      }
+    }
+
     // Check for duplicate (same stage + supervisor + date)
     const updateDate = new Date(input.date);
     const existingUpdate = await prisma.productionUpdate.findUnique({
@@ -70,6 +86,7 @@ export class ProductionService {
           quantity: input.quantity,
           note: input.note,
           originalNote: input.note, // Preserve original for AI
+          clientRequestId: input.clientRequestId || null,
         },
         include: {
           supervisor: { select: { id: true, name: true } },
@@ -200,6 +217,54 @@ export class ProductionService {
     delayService.recalculateOrderRisk(existing.orderStage.order.id).catch(console.error);
 
     return result;
+  }
+
+  /**
+   * Approve or revoke a buyer-facing warning/issue note.
+   * Only Merchandisers and Admins can approve warnings.
+   * Unapproved warnings are completely hidden from the buyer portal.
+   */
+  async approveBuyerWarning(updateId: string, approved: boolean = true, user: JwtPayload) {
+    const update = await prisma.productionUpdate.findUnique({
+      where: { id: updateId },
+      include: {
+        orderStage: {
+          include: {
+            order: { select: { id: true, poNumber: true, buyerId: true } },
+          },
+        },
+      },
+    });
+
+    if (!update) throw new AppError('Production update not found.', 404);
+
+    const updated = await prisma.productionUpdate.update({
+      where: { id: updateId },
+      data: {
+        buyerWarningApproved: approved,
+        buyerWarningApprovedBy: approved ? user.userId : null,
+        buyerWarningApprovedAt: approved ? new Date() : null,
+      },
+    });
+
+    // Record audit log entry
+    await prisma.auditLog.create({
+      data: {
+        userId: user.userId,
+        action: approved ? 'APPROVE_BUYER_WARNING' : 'REVOKE_BUYER_WARNING',
+        entityType: 'ProductionUpdate',
+        entityId: updateId,
+        details: {
+          orderId: update.orderStage.order.id,
+          poNumber: update.orderStage.order.poNumber,
+          stageName: update.orderStage.stageName,
+          category: update.correctedCategory || update.aiCategory,
+          approved,
+        },
+      },
+    });
+
+    return updated;
   }
 
   /**

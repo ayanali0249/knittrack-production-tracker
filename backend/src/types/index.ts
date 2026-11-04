@@ -171,4 +171,5 @@ export interface CreateProductionUpdateInput {
   date: string;
   quantity: number;
   note?: string;
+  clientRequestId?: string;
 }

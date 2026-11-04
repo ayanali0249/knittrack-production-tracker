@@ -18,6 +18,11 @@ const submitUpdateSchema = z.object({
   date: z.string().refine((d) => !isNaN(Date.parse(d)), 'Invalid date format').default(() => new Date().toISOString().split('T')[0]),
   quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
   note: z.string().optional(),
+  clientRequestId: z.string().optional(),
+});
+
+const approveWarningSchema = z.object({
+  approved: z.boolean().default(true),
 });
 
 const editUpdateSchema = z.object({
@@ -42,6 +47,14 @@ router.put(
   requireRole('ADMIN', 'SUPERVISOR'),
   validate(editUpdateSchema),
   asyncHandler(async (req, res) => productionController.editUpdate(req, res))
+);
+
+// PUT /api/production/updates/:id/approve-warning (Merchandiser/Admin approves buyer warning)
+router.put(
+  '/updates/:id/approve-warning',
+  requireRole('ADMIN', 'MERCHANDISER'),
+  validate(approveWarningSchema),
+  asyncHandler(async (req, res) => productionController.approveWarning(req, res))
 );
 
 // GET /api/production/updates

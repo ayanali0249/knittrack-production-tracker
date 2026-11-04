@@ -23,63 +23,40 @@ router.post(
   asyncHandler(async (req, res) => buyerController.generateToken(req, res))
 );
 
+// Middleware that supports both query token (?token=xxx) and standard JWT cookie auth
+const buyerAuth = (req: any, res: any, next: any) => {
+  if (req.query.token) {
+    return next();
+  }
+  return authenticate(req, res, next);
+};
+
 // GET /api/buyer/portal — buyer portal data
-// Supports both JWT auth (buyer user) and token-based access (?token=xxx)
 router.get(
   '/portal',
-  asyncHandler(async (req, res) => {
-    // If token is in query, skip JWT auth
-    if (req.query.token) {
-      return buyerController.getPortalData(req as any, res);
-    }
-    // Otherwise require authentication
-    authenticate(req as any, res, (err?: unknown) => {
-      if (err) return;
-      buyerController.getPortalData(req as any, res);
-    });
-  })
+  buyerAuth,
+  asyncHandler(async (req, res) => buyerController.getPortalData(req, res))
 );
 
 // GET /api/buyer/portal/:orderId — buyer portal order detail
 router.get(
   '/portal/:orderId',
-  asyncHandler(async (req, res) => {
-    if (req.query.token) {
-      return buyerController.getOrderDetail(req as any, res);
-    }
-    authenticate(req as any, res, (err?: unknown) => {
-      if (err) return;
-      buyerController.getOrderDetail(req as any, res);
-    });
-  })
+  buyerAuth,
+  asyncHandler(async (req, res) => buyerController.getOrderDetail(req, res))
 );
 
 // GET /api/buyer/orders — alias for portal orders list
 router.get(
   '/orders',
-  asyncHandler(async (req, res) => {
-    if (req.query.token) {
-      return buyerController.getPortalData(req as any, res);
-    }
-    authenticate(req as any, res, (err?: unknown) => {
-      if (err) return;
-      buyerController.getPortalData(req as any, res);
-    });
-  })
+  buyerAuth,
+  asyncHandler(async (req, res) => buyerController.getPortalData(req, res))
 );
 
 // GET /api/buyer/orders/:orderId — alias for portal order detail
 router.get(
   '/orders/:orderId',
-  asyncHandler(async (req, res) => {
-    if (req.query.token) {
-      return buyerController.getOrderDetail(req as any, res);
-    }
-    authenticate(req as any, res, (err?: unknown) => {
-      if (err) return;
-      buyerController.getOrderDetail(req as any, res);
-    });
-  })
+  buyerAuth,
+  asyncHandler(async (req, res) => buyerController.getOrderDetail(req, res))
 );
 
 export default router;

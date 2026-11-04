@@ -253,6 +253,67 @@ export const BuyerPortalPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Card 3: Approved Buyer Advisories & Verified Notices */}
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Merchandiser-Approved Floor Advisories
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Verified status notices
+                  </span>
+                </div>
+
+                {(() => {
+                  const approvedNotices = (selectedOrder.stages || []).flatMap((stg) =>
+                    (stg.productionUpdates || [])
+                      .filter((u) => u.buyerWarningApproved)
+                      .map((u) => ({ ...u, stageName: stg.stageName }))
+                  );
+
+                  if (approvedNotices.length === 0) {
+                    return (
+                      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>All active stages executing under standard operating schedule with zero approved buyer exceptions.</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2.5">
+                      {approvedNotices.map((notice) => (
+                        <div
+                          key={notice.id}
+                          className="p-3 rounded-lg border border-amber-200 bg-amber-50/60 text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800">
+                              Stage: {notice.stageName} • {new Date(notice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                            <StatusBadge
+                              type="category"
+                              value={notice.correctedCategory || notice.aiCategory || 'Operational Notice'}
+                            />
+                          </div>
+                          {notice.note && (
+                            <p className="text-slate-700 italic font-medium leading-relaxed">
+                              "{notice.note}"
+                            </p>
+                          )}
+                          <span className="text-[10px] text-emerald-700 font-semibold block">
+                            ✓ Verified and approved by export merchandising team
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Card 3: Approved Factory Photographs */}
               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">

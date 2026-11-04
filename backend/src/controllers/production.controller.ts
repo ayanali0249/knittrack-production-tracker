@@ -21,6 +21,17 @@ export class ProductionController {
   }
 
   /**
+   * PUT /api/production/updates/:id/approve-warning
+   * Merchandiser or Admin approves or revokes a floor warning for buyer visibility.
+   */
+  async approveWarning(req: AuthRequest, res: Response) {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { approved } = req.body;
+    const result = await productionService.approveBuyerWarning(id, approved, req.user!);
+    res.json({ success: true, data: result });
+  }
+
+  /**
    * GET /api/production/updates
    */
   async getUpdates(req: AuthRequest, res: Response) {

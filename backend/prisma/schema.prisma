@@ -155,6 +155,10 @@ model ProductionUpdate {
   aiCategory      String?
   aiConfidence    Float?
   correctedCategory String?
+  clientRequestId String?   @unique // Offline-first idempotency key (UUID)
+  buyerWarningApproved Boolean @default(false) // Merchandiser-approved for buyer visibility
+  buyerWarningApprovedBy String?
+  buyerWarningApprovedAt DateTime?
   createdAt       DateTime  @default(now())
 
   photos          ProductionPhoto[]

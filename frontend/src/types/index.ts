@@ -58,6 +58,10 @@ export interface ProductionUpdate {
   aiCategory?: string | null;
   aiConfidence?: number | null;
   correctedCategory?: string | null;
+  clientRequestId?: string | null;
+  buyerWarningApproved?: boolean;
+  buyerWarningApprovedBy?: string | null;
+  buyerWarningApprovedAt?: string | null;
   createdAt: string;
   supervisor?: {
     id: string;
