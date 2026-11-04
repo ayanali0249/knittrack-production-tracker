@@ -1,4 +1,4 @@
-﻿# KnitTrack Architecture & Workflow Diagram Generator
+# KnitTrack Architecture & Workflow Diagram Generator
 # Generates 5 high-resolution, professional PNG diagrams for the Technical Design Document
 
 Add-Type -AssemblyName System.Drawing
@@ -163,7 +163,7 @@ $g1.DrawString("TIER 3: CORE DOMAIN APPLICATION SERVICES (BUSINESS LOGIC ENGINE)
 
 Draw-Card $g1 35 400 270 140 "Order & Milestone Service" @("PO Creation & Multi-Size Breakdowns", "TNA Sequential Stage Progression", "Cutting, Stitching, Washing, Packing", "Idempotent Status Transitions", "Tenant Isolation Enforcement") $cBlueLight $cBlueBorder $cNavyDark $true
 Draw-Card $g1 320 400 270 140 "Deterministic Delay Engine" @("5-Day Business Week (Mon-Fri Math)", "Actual Run Rate: Completed / Elapsed", "Required Run Rate: Remaining / Left", "Projected Completion Date & Delay", "Risk Badges: ON_TRACK, AT_RISK, DELAYED") $cGreenLight $cGreenBorder $cGreenDark $true
-Draw-Card $g1 605 400 270 140 "AI Production Note Classifier" @("Google Gemini 1.5/2.0 Flash Integration", "Tamil & English Translation & Extraction", "8 Standardized Knitwear Categories", "Deterministic Regex Fallback Dictionary", "Audit Log on Merchandiser Edits") $cAmberLight $cAmberBorder $cAmberDark $true
+Draw-Card $g1 605 400 270 140 "AI Production Note Classifier" @("Gemini 3.8 Flash / Fallback Dict", "Tamil & English Translation & Extraction", "8 Standardized Knitwear Categories", "Deterministic Regex Fallback Dictionary", "Audit Log on Merchandiser Edits") $cAmberLight $cAmberBorder $cAmberDark $true
 Draw-Card $g1 890 400 275 140 "Analytics & Floor Service" @("Executive KPI Aggregations", "Unit-Level Throughput & Capacity", "Supervisor Daily Output Entry", "Compound Unique Constraint Guards", "Subcontract Unit Milestone Tracking") $cWhite $cSlate300 $cSlate800 $true
 
 Draw-Arrow $g1 600 555 600 585 $cSlate400 "Prisma Client (Type-Safe Query Engine) / REST API / Disk I/O"
@@ -177,7 +177,7 @@ $g1.DrawString("TIER 4: PERSISTENCE, EXTERNAL AI & STORAGE LAYER", $fSectionHdr,
 
 Draw-Card $g1 35 615 360 130 "Prisma ORM 5.22" @("Type-Safe Database Client & Query Builder", "Prisma Schema Declarative Data Model", "Connection Pooling & Transaction Support", "Automated Migrations (npx prisma db push)", "Seeded Demo Data Harness (seed.ts)") $cWhite $cSlate300 $cNavyDark $false
 Draw-Card $g1 415 615 360 130 "PostgreSQL 17 Relational Database" @("3NF Normalized Relational Architecture", "Foreign Keys with Referential Integrity (CASCADE)", "Compound Unique Constraints on Daily Updates", "Indexed PO Numbers, Buyer IDs, & Stages", "Row-Level Query Scoping: where { buyerId }") $cBlueLight $cBlueBorder $cNavyDark $true
-Draw-Card $g1 795 615 365 130 "External Services & Storage" @("Google Gemini AI API (Cloud LLM Endpoint)", "Local Disk Storage (backend/uploads/)", "Preserved Original Tamil Strings (originalNote)", "AuditLog Table for Category Corrections", "V2 Cloud Roadmap: AWS S3 + Redis Cache") $cWhite $cSlate300 $cSlate800 $false
+Draw-Card $g1 795 615 365 130 "External Services & Storage" @("Google Gemini 3.8 Flash API (Optional Cloud)", "Local Disk Storage (backend/uploads/)", "Preserved Original Tamil Strings (originalNote)", "AuditLog Table for Category Corrections", "V2 Cloud Roadmap: AWS S3 + Redis Cache") $cWhite $cSlate300 $cSlate800 $false
 
 $whiteBrush.Dispose()
 
@@ -294,7 +294,7 @@ $g3.DrawRectangle($penSlate, 20, 475, 1160, 235)
 $g3.DrawString("EXTERNAL BUYER VISIBILITY & TRANSPARENCY (TENANT-ISOLATED PORTAL)", $fSectionHdr, $hdrText, [float]30, [float]483)
 
 Draw-Card $g3 35 510 350 185 "Buyer Authentication & Scoping" @("Buyer logs in with brand account", "JWT contains buyerId claim", "Backend filters where: { buyerId }", "Buyer B strictly isolated from Buyer C", "Magic-link token support verified", "Read-only GET endpoints only") $cWhite $cSlate300 $cNavyDark $true
-Draw-Card $g3 415 510 360 185 "Transparent Milestone Tracking" @("Real-time ex-factory countdown timer", "Progress bar per stage (% completed)", "Plain-English delay explanation:", "'At current rate of 350 pcs/day, this order requires 15 days, but only 10 remain. Projected delay: 5 days.'", "Zero visibility into internal costs") $cBlueLight $cBlueBorder $cNavyDark $true
+Draw-Card $g3 415 510 360 185 "Transparent Milestone Tracking" @("On-demand ex-factory countdown display", "Progress bar per stage (% completed)", "Plain-English delay explanation:", "'At current rate of 350 pcs/day, this order requires 15 days, but only 10 remain. Projected delay: 5 days.'", "Zero visibility into internal costs") $cBlueLight $cBlueBorder $cNavyDark $true
 Draw-Card $g3 805 510 360 185 "Quality & Assembly Photographs" @("Inspects high-resolution floor photos", "Stitching seams, printing quality", "Packaging labels and carton barcodes", "Pre-shipment verification without international travel overhead") $cWhite $cSlate300 $cSlate800 $true
 
 # Workflow Arrows
